@@ -1,7 +1,8 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { fetchDeviceStatus, fetchHistory, fetchRuleLogs } from '../api/client'
 
-/** 以下为原型数据，后续可替换为 fetch('/api/...') 结果 */
+/** 状态管理 */
 const cityQuery = ref('Beijing')
 const weather = ref({
   city: 'Beijing',
@@ -14,32 +15,23 @@ const weather = ref({
 })
 
 const sensorLatest = ref({
-  temperature: 24.6,
-  humidity: 71.2,
+  temperature: 0,
+  humidity: 0,
   ph: 6.4,
-  light: 8420,
-  soil: 58,
-  updated: '2025-03-25 14:31:08',
+  light: 0,
+  soil: 0,
+  updated: '',
 })
 
-const alerts = ref([
-  { time: '2025-03-25 13:45', type: '湿度', info: '湿度偏高', detail: '大棚 A 区 78%，超过阈值 75%' },
-  { time: '2025-03-25 11:20', type: '温度', info: '温度正常', detail: '当前 24.2°C，在设定范围内' },
-  { time: '2025-03-25 09:05', type: 'pH', info: '轻微偏低', detail: '营养液 pH 6.1，建议微调' },
-])
+const alerts = ref([])
+const historyRows = ref([])
+const trendTemp = ref([])
+const trendHum = ref([])
+const trendLabels = ref([])
+const loading = ref(false)
+const error = ref('')
 
-const historyRows = ref([
-  { time: '2025-03-25 14:28', temp: 24.6, humidity: 71.2, ph: 6.4 },
-  { time: '2025-03-25 14:18', temp: 24.1, humidity: 70.5, ph: 6.4 },
-  { time: '2025-03-25 14:08', temp: 23.8, humidity: 69.9, ph: 6.3 },
-  { time: '2025-03-25 13:58', temp: 23.5, humidity: 69.1, ph: 6.3 },
-  { time: '2025-03-25 13:48', temp: 23.2, humidity: 68.4, ph: 6.2 },
-])
-
-const trendTemp = ref([22.1, 22.8, 23.2, 23.5, 23.8, 24.1, 24.6])
-const trendHum = ref([66, 67, 68, 68.5, 69.2, 70.5, 71.2])
-const trendLabels = ref(['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00'])
-
+/** 计算属性 */
 const chartPaths = computed(() => {
   const w = 560
   const h = 160
@@ -55,10 +47,10 @@ const chartPaths = computed(() => {
     })
     return pts.join(' ')
   }
-  const tMin = Math.min(...trendTemp.value) - 0.5
-  const tMax = Math.max(...trendTemp.value) + 0.5
-  const hMin = Math.min(...trendHum.value) - 2
-  const hMax = Math.max(...trendHum.value) + 2
+  const tMin = trendTemp.value.length > 0 ? Math.min(...trendTemp.value) - 0.5 : 20
+  const tMax = trendTemp.value.length > 0 ? Math.max(...trendTemp.value) + 0.5 : 25
+  const hMin = trendHum.value.length > 0 ? Math.min(...trendHum.value) - 2 : 60
+  const hMax = trendHum.value.length > 0 ? Math.max(...trendHum.value) + 2 : 75
   return {
     temp: series(trendTemp.value, tMin, tMax),
     hum: series(trendHum.value, hMin, hMax),
@@ -66,6 +58,79 @@ const chartPaths = computed(() => {
     h,
   }
 })
+
+/** 方法 */
+async function fetchData() {
+  loading.value = true
+  error.value = ''
+  try {
+    // 获取设备状态
+    const deviceStatus = await fetchDeviceStatus()
+    if (deviceStatus) {
+      sensorLatest.value.updated = deviceStatus.last_active || ''
+    }
+
+    // 获取温度历史数据
+    const tempHistory = await fetchHistory('temperature', '24h', '1h')
+    if (tempHistory) {
+      trendTemp.value = tempHistory.y_axis
+      trendLabels.value = tempHistory.x_axis
+    }
+
+    // 获取湿度历史数据
+    const humHistory = await fetchHistory('humidity', '24h', '1h')
+    if (humHistory) {
+      trendHum.value = humHistory.y_axis
+    }
+
+    // 获取光照数据
+    const lightHistory = await fetchHistory('light', '24h', '1h')
+    if (lightHistory && lightHistory.y_axis.length > 0) {
+      sensorLatest.value.light = lightHistory.y_axis[lightHistory.y_axis.length - 1]
+    }
+
+    // 获取土壤湿度数据
+    const soilHistory = await fetchHistory('soil_moisture', '24h', '1h')
+    if (soilHistory && soilHistory.y_axis.length > 0) {
+      sensorLatest.value.soil = soilHistory.y_axis[soilHistory.y_axis.length - 1]
+    }
+
+    // 获取规则日志（告警）
+    const logs = await fetchRuleLogs()
+    if (logs) {
+      alerts.value = logs.map(log => ({
+        time: log.timestamp,
+        type: '系统',
+        info: log.rule_name,
+        detail: log.result
+      }))
+    }
+
+    // 生成历史记录
+    if (tempHistory && humHistory && tempHistory.y_axis.length === humHistory.y_axis.length) {
+      historyRows.value = tempHistory.y_axis.map((temp, index) => ({
+        time: tempHistory.x_axis[index] || '',
+        temp: temp,
+        humidity: humHistory.y_axis[index] || 0,
+        ph: 6.4 // 模拟pH值
+      })).slice(-5).reverse()
+    }
+
+    // 更新最新传感器数据
+    if (tempHistory && tempHistory.y_axis.length > 0) {
+      sensorLatest.value.temperature = tempHistory.y_axis[tempHistory.y_axis.length - 1]
+    }
+    if (humHistory && humHistory.y_axis.length > 0) {
+      sensorLatest.value.humidity = humHistory.y_axis[humHistory.y_axis.length - 1]
+    }
+
+  } catch (err) {
+    error.value = '数据获取失败，请稍后重试'
+    console.error('API调用错误:', err)
+  } finally {
+    loading.value = false
+  }
+}
 
 function mockSearchWeather() {
   weather.value = {
@@ -75,14 +140,14 @@ function mockSearchWeather() {
   }
 }
 
-function mockRefresh() {
-  sensorLatest.value = {
-    ...sensorLatest.value,
-    temperature: +(sensorLatest.value.temperature + (Math.random() * 0.4 - 0.2)).toFixed(1),
-    humidity: +(sensorLatest.value.humidity + (Math.random() * 1 - 0.5)).toFixed(1),
-    updated: new Date().toLocaleString('zh-CN', { hour12: false }),
-  }
+function handleRefresh() {
+  fetchData()
 }
+
+/** 生命周期 */
+onMounted(() => {
+  fetchData()
+})
 </script>
 
 <template>
@@ -90,12 +155,15 @@ function mockRefresh() {
     <header class="dash-head">
       <div>
         <h2 class="dash-title">智慧农业监测 — 仪表盘</h2>
-        <p class="dash-sub">实时概览 · 以下为演示数据，可对接传感器与云端接口</p>
+        <p class="dash-sub">实时概览 · 数据来自后端API</p>
+        <div v-if="error" class="error-message">{{ error }}</div>
       </div>
       <div class="dash-actions">
-        <span class="pill">模式：演示</span>
-        <button type="button" class="btn btn-ghost" @click="mockRefresh">刷新</button>
-        <button type="button" class="btn btn-primary">同步云端</button>
+        <span class="pill">模式：实时</span>
+        <button type="button" class="btn btn-ghost" @click="handleRefresh" :disabled="loading">
+          {{ loading ? '加载中...' : '刷新' }}
+        </button>
+        <button type="button" class="btn btn-primary" @click="handleRefresh">同步云端</button>
         <button type="button" class="btn btn-ghost">导出告警 CSV</button>
       </div>
     </header>
@@ -104,12 +172,18 @@ function mockRefresh() {
     <section class="grid metrics" aria-label="最新传感器指标">
       <article class="proto-card metric proto-card--accent">
         <span class="metric-label">温度</span>
-        <span class="metric-value">{{ sensorLatest.temperature }}<small>°C</small></span>
+        <span class="metric-value">
+          <template v-if="loading">加载中...</template>
+          <template v-else>{{ sensorLatest.temperature }}<small>°C</small></template>
+        </span>
         <span class="metric-hint">适宜生长</span>
       </article>
       <article class="proto-card metric">
         <span class="metric-label">空气湿度</span>
-        <span class="metric-value">{{ sensorLatest.humidity }}<small>%</small></span>
+        <span class="metric-value">
+          <template v-if="loading">加载中...</template>
+          <template v-else>{{ sensorLatest.humidity }}<small>%</small></template>
+        </span>
         <span class="metric-hint">略偏高</span>
       </article>
       <article class="proto-card metric">
@@ -119,7 +193,10 @@ function mockRefresh() {
       </article>
       <article class="proto-card metric">
         <span class="metric-label">光照</span>
-        <span class="metric-value">{{ sensorLatest.light }}<small> lux</small></span>
+        <span class="metric-value">
+          <template v-if="loading">加载中...</template>
+          <template v-else>{{ sensorLatest.light }}<small> lux</small></template>
+        </span>
         <span class="metric-hint">充足</span>
       </article>
     </section>
@@ -160,7 +237,10 @@ function mockRefresh() {
         <div class="soil-grid">
           <div>
             <span class="soil-label">含水率</span>
-            <span class="soil-val">{{ sensorLatest.soil }}%</span>
+            <span class="soil-val">
+              <template v-if="loading">加载中...</template>
+              <template v-else>{{ sensorLatest.soil }}%</template>
+            </span>
           </div>
           <div>
             <span class="soil-label">电导率</span>
@@ -168,7 +248,10 @@ function mockRefresh() {
           </div>
           <div>
             <span class="soil-label">采集时间</span>
-            <span class="soil-val small">{{ sensorLatest.updated }}</span>
+            <span class="soil-val small">
+              <template v-if="loading">加载中...</template>
+              <template v-else>{{ sensorLatest.updated }}</template>
+            </span>
           </div>
         </div>
         <p class="panel-note">接口就绪后映射字段：<code>soil_moisture</code>、<code>ec</code> 等。</p>
@@ -711,5 +794,20 @@ function mockRefresh() {
   .soil-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.error-message {
+  color: #dc3545;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(220, 53, 69, 0.1);
+  border-radius: 6px;
+  border-left: 3px solid #dc3545;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>
