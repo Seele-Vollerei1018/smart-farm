@@ -312,6 +312,27 @@ def _sensor_simulation_tick() -> None:
         time.sleep(SIM_POLL_INTERVAL_SEC)
 
 
+def _clear_csv_daily() -> None:
+    """
+    每日清空CSV文件的函数
+    每24小时清空一次sensor_data.csv文件，从第一行重新开始更新
+    """
+    while True:
+        try:
+            # 等待24小时
+            time.sleep(24 * 60 * 60)
+            
+            # 清空CSV文件，只保留表头
+            with CSV_LOCK:
+                os.makedirs(os.path.dirname(CSV_PATH) or ".", exist_ok=True)
+                with open(CSV_PATH, "w", newline="", encoding="utf-8") as f:
+                    writer = csv.writer(f)
+                    writer.writerow(["timestamp", "temperature", "humidity", "light", "soil_moisture"])
+        except Exception:
+            # 防止线程异常退出
+            pass
+
+
 @app.on_event("startup")
 def _startup() -> None:
     """
@@ -319,6 +340,7 @@ def _startup() -> None:
     启动后台线程：
     1. 规则引擎线程 - 定期检查传感器数据，评估规则
     2. 传感器模拟线程 - 生成模拟数据（如果启用）
+    3. CSV清空线程 - 每24小时清空一次CSV文件
     """
     # 启动规则引擎线程，用于定期检查传感器数据和评估规则
     t = threading.Thread(target=_rule_engine_tick, daemon=True)
@@ -328,6 +350,10 @@ def _startup() -> None:
     if ENABLE_SIMULATION:
         sim = threading.Thread(target=_sensor_simulation_tick, daemon=True)
         sim.start()
+    
+    # 启动每日清空CSV文件的线程
+    clear_csv_thread = threading.Thread(target=_clear_csv_daily, daemon=True)
+    clear_csv_thread.start()
 
 
 @app.get("/api/v1/devices/{device_id}/status")

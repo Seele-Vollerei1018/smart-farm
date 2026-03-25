@@ -19,7 +19,7 @@ const articles = [
     mins: 10,
   },
   {
-    title: '告警阈值设定与季节性策略',
+    title: '警告阈值设定与季节性策略',
     excerpt: '从固定阈值到滑动窗口，减少误报的同时不漏掉风险。',
     tag: '运维',
     mins: 7,

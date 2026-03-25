@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { fetchDeviceStatus, fetchHistory, fetchRuleLogs } from '../api/client'
 
 /** 状态管理 */
@@ -28,8 +28,10 @@ const historyRows = ref([])
 const trendTemp = ref([])
 const trendHum = ref([])
 const trendLabels = ref([])
-const loading = ref(false)
+const loading = ref(true) // 初始加载时显示加载中
 const error = ref('')
+const initialLoaded = ref(false) // 标记是否已经完成初始加载
+const lastHistoryUpdateHour = ref(null) // 记录上次更新历史记录的小时
 
 /** 计算属性 */
 const chartPaths = computed(() => {
@@ -61,7 +63,10 @@ const chartPaths = computed(() => {
 
 /** 方法 */
 async function fetchData() {
-  loading.value = true
+  // 只有在初始加载时才显示加载中
+  if (!initialLoaded.value) {
+    loading.value = true
+  }
   error.value = ''
   try {
     // 获取设备状态
@@ -95,7 +100,7 @@ async function fetchData() {
       sensorLatest.value.soil = soilHistory.y_axis[soilHistory.y_axis.length - 1]
     }
 
-    // 获取规则日志（告警）
+    // 获取规则日志（警告）
     const logs = await fetchRuleLogs()
     if (logs) {
       alerts.value = logs.map(log => ({
@@ -106,14 +111,21 @@ async function fetchData() {
       }))
     }
 
-    // 生成历史记录
-    if (tempHistory && humHistory && tempHistory.y_axis.length === humHistory.y_axis.length) {
+    // 获取当前小时
+    const currentHour = new Date().getHours()
+    
+    // 只有在新的小时或者是第一次加载时，才更新历史记录
+    if ((tempHistory && humHistory && tempHistory.y_axis.length === humHistory.y_axis.length) && 
+        (lastHistoryUpdateHour.value !== currentHour || lastHistoryUpdateHour.value === null)) {
       historyRows.value = tempHistory.y_axis.map((temp, index) => ({
         time: tempHistory.x_axis[index] || '',
-        temp: temp,
-        humidity: humHistory.y_axis[index] || 0,
+        temp: typeof temp === 'number' ? temp.toFixed(2) : '0.00',
+        humidity: typeof humHistory.y_axis[index] === 'number' ? humHistory.y_axis[index].toFixed(2) : '0.00',
         ph: 6.4 // 模拟pH值
-      })).slice(-5).reverse()
+      })).slice(-25).reverse()
+      
+      // 记录上次更新历史记录的小时
+      lastHistoryUpdateHour.value = currentHour
     }
 
     // 更新最新传感器数据
@@ -124,11 +136,17 @@ async function fetchData() {
       sensorLatest.value.humidity = humHistory.y_axis[humHistory.y_axis.length - 1]
     }
 
+    // 标记初始加载完成
+    initialLoaded.value = true
+
   } catch (err) {
     error.value = '数据获取失败，请稍后重试'
     console.error('API调用错误:', err)
   } finally {
-    loading.value = false
+    // 只有在初始加载时才关闭加载中
+    if (!initialLoaded.value) {
+      loading.value = false
+    }
   }
 }
 
@@ -145,8 +163,19 @@ function handleRefresh() {
 }
 
 /** 生命周期 */
+let refreshTimer = null
+
 onMounted(() => {
   fetchData()
+  // 每2秒自动刷新一次数据
+  refreshTimer = setInterval(fetchData, 2000)
+})
+
+onUnmounted(() => {
+  // 组件卸载时清除定时器
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+  }
 })
 </script>
 
@@ -160,8 +189,8 @@ onMounted(() => {
       </div>
       <div class="dash-actions">
         <span class="pill">模式：实时</span>
-        <button type="button" class="btn btn-ghost" @click="handleRefresh" :disabled="loading">
-          {{ loading ? '加载中...' : '刷新' }}
+        <button type="button" class="btn btn-ghost" @click="handleRefresh">
+          刷新
         </button>
         <button type="button" class="btn btn-primary" @click="handleRefresh">同步云端</button>
         <button type="button" class="btn btn-ghost">导出警告 CSV</button>
@@ -173,7 +202,7 @@ onMounted(() => {
       <article class="proto-card metric proto-card--accent">
         <span class="metric-label">温度</span>
         <span class="metric-value">
-          <template v-if="loading">加载中...</template>
+          <template v-if="!initialLoaded">加载中...</template>
           <template v-else>{{ typeof sensorLatest.temperature === 'number' ? sensorLatest.temperature.toFixed(2) : '0.00' }}<small>°C</small></template>
         </span>
         <span class="metric-hint">适宜生长</span>
@@ -181,7 +210,7 @@ onMounted(() => {
       <article class="proto-card metric">
         <span class="metric-label">空气湿度</span>
         <span class="metric-value">
-          <template v-if="loading">加载中...</template>
+          <template v-if="!initialLoaded">加载中...</template>
           <template v-else>{{ typeof sensorLatest.humidity === 'number' ? sensorLatest.humidity.toFixed(2) : '0.00' }}<small>%</small></template>
         </span>
         <span class="metric-hint">略偏高</span>
@@ -194,7 +223,7 @@ onMounted(() => {
       <article class="proto-card metric">
         <span class="metric-label">光照</span>
         <span class="metric-value">
-          <template v-if="loading">加载中...</template>
+          <template v-if="!initialLoaded">加载中...</template>
           <template v-else>{{ typeof sensorLatest.light === 'number' ? sensorLatest.light.toFixed(2) : '0.00' }}<small> lux</small></template>
         </span>
         <span class="metric-hint">充足</span>
@@ -238,7 +267,7 @@ onMounted(() => {
           <div>
             <span class="soil-label">含水率</span>
             <span class="soil-val">
-              <template v-if="loading">加载中...</template>
+              <template v-if="!initialLoaded">加载中...</template>
               <template v-else>{{ typeof sensorLatest.soil === 'number' ? sensorLatest.soil.toFixed(2) : '0.00' }}%</template>
             </span>
           </div>
@@ -258,11 +287,11 @@ onMounted(() => {
       </article>
     </section>
 
-    <!-- 第三行：告警 + 历史表 -->
+    <!-- 第三行：警告 + 历史表 -->
     <section class="grid row-3">
       <article class="proto-card panel table-panel">
         <div class="panel-head">
-          <h3>告警记录</h3>
+          <h3>警告记录</h3>
         </div>
         <div class="table-wrap">
           <table class="data-table">
