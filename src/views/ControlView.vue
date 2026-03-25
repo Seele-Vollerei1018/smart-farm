@@ -1,8 +1,10 @@
 <script setup>
 import { ref } from 'vue'
+import { isAuthenticated } from '../utils/auth'
 
 const piOnline = ref(true)
 const piPower = ref(true)
+const canControl = ref(isAuthenticated())
 
 const devices = ref([
   {
@@ -47,7 +49,7 @@ function statusLabel(s) {
 }
 
 function onDeviceChange(d) {
-  if (!piOnline.value || !d.available || !piPower.value) return
+  if (!canControl.value || !piOnline.value || !d.available || !piPower.value) return
   logs.value.unshift({
     time: new Date().toLocaleString('zh-CN', { hour12: false }),
     device: d.title,
@@ -67,6 +69,7 @@ function onDeviceChange(d) {
           <span class="legend"><span class="dot on"></span> 在线</span>
           <span class="legend"><span class="dot off"></span> 离线</span>
         </p>
+        <p v-if="!canControl" class="lock-tip">当前未登录，无法执行设备控制操作。</p>
       </div>
     </header>
 
@@ -93,7 +96,7 @@ function onDeviceChange(d) {
           <p class="pi-desc">网关状态与末端设备联动；后续对接 <code>/api/device/pi</code>。</p>
         </div>
         <label class="switch large">
-          <input v-model="piPower" type="checkbox" :disabled="!piOnline" />
+          <input v-model="piPower" type="checkbox" :disabled="!canControl || !piOnline" />
           <span class="slider" />
         </label>
       </div>
@@ -140,7 +143,7 @@ function onDeviceChange(d) {
               <input
                 v-model="d.on"
                 type="checkbox"
-                :disabled="!piOnline || !d.available || !piPower"
+                :disabled="!canControl || !piOnline || !d.available || !piPower"
                 @change="onDeviceChange(d)"
               />
               <span class="slider" />
@@ -212,6 +215,12 @@ function onDeviceChange(d) {
   margin: 0;
   font-size: 0.88rem;
   color: rgba(26, 46, 36, 0.7);
+}
+
+.lock-tip {
+  margin: 0.45rem 0 0;
+  color: #b02a37;
+  font-size: 0.82rem;
 }
 
 .legend {

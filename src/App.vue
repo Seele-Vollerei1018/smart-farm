@@ -1,12 +1,15 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { RouterLink, RouterView, useRoute } from 'vue-router'
+import { computed, ref, watch } from 'vue'
+import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
+import { getAuthUser, logout } from './utils/auth'
 
 const route = useRoute()
-const isLoggedIn = ref(true)
+const router = useRouter()
+const currentUser = ref(getAuthUser())
 const isSidebarVisible = ref(true)
 
 const pageTitles = {
+  login: '登录',
   dashboard: '仪表盘',
   control: '设备控制',
   learning: '学习园地',
@@ -15,9 +18,21 @@ const pageTitles = {
 }
 
 const currentPageTitle = computed(() => pageTitles[route.name] || '智慧农业')
+const isLoginPage = computed(() => route.name === 'login')
+const isLoggedIn = computed(() => !!currentUser.value)
+const displayName = computed(() => currentUser.value?.displayName || 'admin')
 
-const toggleLogin = () => {
-  isLoggedIn.value = !isLoggedIn.value
+watch(
+  () => route.fullPath,
+  () => {
+    currentUser.value = getAuthUser()
+  },
+)
+
+const handleLogout = () => {
+  logout()
+  currentUser.value = null
+  router.replace('/login')
 }
 
 const toggleSidebar = () => {
@@ -26,7 +41,8 @@ const toggleSidebar = () => {
 </script>
 
 <template>
-  <div class="app">
+  <RouterView v-if="isLoginPage" />
+  <div v-else class="app">
     <aside class="sidebar" v-show="isSidebarVisible" aria-label="主导航">
       <div class="brand">
         <span class="brand-icon" aria-hidden="true">
@@ -90,9 +106,9 @@ const toggleSidebar = () => {
           <h1 class="page-title">{{ currentPageTitle }}</h1>
         </div>
         <div class="user-section">
-          <span v-if="isLoggedIn" class="welcome-text">欢迎，admin</span>
-          <button type="button" class="login-btn" :class="{ 'logged-in': isLoggedIn }" @click="toggleLogin">
-            {{ isLoggedIn ? '退出' : '登录' }}
+          <span v-if="isLoggedIn" class="welcome-text">欢迎，{{ displayName }}</span>
+          <button v-if="isLoggedIn" type="button" class="login-btn logged-in" @click="handleLogout">
+            退出
           </button>
         </div>
       </header>

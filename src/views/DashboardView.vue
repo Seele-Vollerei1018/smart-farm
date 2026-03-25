@@ -327,6 +327,7 @@ function mockRefresh() {
   gap: 0.5rem;
 }
 
+
 .pill {
   font-size: 0.78rem;
   font-weight: 600;
@@ -364,6 +365,7 @@ function mockRefresh() {
 .btn-primary:hover {
   filter: brightness(1.05);
 }
+
 
 .btn-ghost {
   background: #fff;
