@@ -1,3 +1,6 @@
+# 智慧农业监测系统后端
+# 基于FastAPI和CSV存储的原型实现
+
 import os
 import threading
 import time
@@ -14,19 +17,25 @@ from pydantic import BaseModel, Field
 import csv
 
 
-CSV_PATH = os.environ.get("SENSOR_CSV_PATH", os.path.join(".", "sensor_data.csv"))
-POLL_INTERVAL_SEC = float(os.environ.get("CSV_POLL_INTERVAL_SEC", "2.0"))
-ONLINE_DELTA_SEC = int(os.environ.get("DEVICE_OFFLINE_AFTER_SEC", "120"))
+# 配置参数
+CSV_PATH = os.environ.get("SENSOR_CSV_PATH", os.path.join(".", "sensor_data.csv"))  # 传感器数据CSV文件路径
+POLL_INTERVAL_SEC = float(os.environ.get("CSV_POLL_INTERVAL_SEC", "2.0"))  # 轮询间隔（秒）
+ONLINE_DELTA_SEC = int(os.environ.get("DEVICE_OFFLINE_AFTER_SEC", "120"))  # 设备离线判断时间（秒）
 
-CSV_LOCK = threading.Lock()
-RULES_LOCK = threading.Lock()
+# 线程锁
+CSV_LOCK = threading.Lock()  # CSV文件操作锁
+RULES_LOCK = threading.Lock()  # 规则操作锁
 
-ENABLE_SIMULATION = os.environ.get("ENABLE_SENSOR_SIMULATION", "true").lower() == "true"
-SIM_POLL_INTERVAL_SEC = float(os.environ.get("SIM_POLL_INTERVAL_SEC", "2.0"))
+# 模拟数据配置
+ENABLE_SIMULATION = os.environ.get("ENABLE_SENSOR_SIMULATION", "true").lower() == "true"  # 是否启用传感器数据模拟
+SIM_POLL_INTERVAL_SEC = float(os.environ.get("SIM_POLL_INTERVAL_SEC", "2.0"))  # 模拟数据生成间隔（秒）
 
 
 def _ensure_csv_header_if_missing(path: str) -> None:
-    # Ensure the writer can append safely even if the file is newly created.
+    """
+    确保CSV文件存在并包含正确的表头
+    如果文件不存在或为空，则添加表头
+    """
     if os.path.exists(path) and os.path.getsize(path) > 0:
         return
 
@@ -37,6 +46,9 @@ def _ensure_csv_header_if_missing(path: str) -> None:
 
 
 def _append_row(row: Dict[str, Any]) -> None:
+    """
+    向CSV文件追加一行传感器数据
+    """
     _ensure_csv_header_if_missing(CSV_PATH)
     with open(CSV_PATH, "a", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=["timestamp", "temperature", "humidity", "light", "soil_moisture"])
@@ -44,7 +56,11 @@ def _append_row(row: Dict[str, Any]) -> None:
 
 
 def _load_df() -> pd.DataFrame:
-    # NOTE: CSV may be appended concurrently; we guard with CSV_LOCK.
+    """
+    加载CSV文件数据为DataFrame
+    包含时间戳解析和排序
+    """
+    # 注意：CSV可能被并发追加，需要使用CSV_LOCK保护
     with CSV_LOCK:
         _ensure_csv_header_if_missing(CSV_PATH)
         df = pd.read_csv(CSV_PATH)
@@ -59,20 +75,29 @@ def _load_df() -> pd.DataFrame:
 
 
 def _get_latest_row(df: pd.DataFrame) -> Optional[pd.Series]:
+    """
+    获取DataFrame中的最新一行数据
+    """
     if df.empty:
         return None
     return df.iloc[-1]
 
 
 def _format_x_axis(ts_list: List[pd.Timestamp], range_value: str) -> List[str]:
+    """
+    根据时间范围格式化X轴标签
+    24h范围显示小时:分钟，其他范围显示月-日 小时:分钟
+    """
     if range_value == "24h":
         return [ts.strftime("%H:%M") for ts in ts_list]
     return [ts.strftime("%m-%d %H:%M") for ts in ts_list]
 
 
 def _parse_interval(interval: str) -> str:
-    # doc examples: "1h"
-    # allow "30m", "1h" etc.
+    """
+    解析时间间隔字符串，转换为pandas支持的格式
+    支持格式：1h, 30m, 1s等
+    """
     unit = interval[-1].lower()
     n = float(interval[:-1]) if interval[:-1] else 1
     if unit == "h":
@@ -86,63 +111,85 @@ def _parse_interval(interval: str) -> str:
 
 
 class RuleTrigger(BaseModel):
-    sensor: Literal["soil_moisture", "temperature", "humidity", "light"]
-    operator: Literal["<", ">", "<=", ">=", "=="]
-    threshold: float
+    """
+    规则触发条件
+    """
+    sensor: Literal["soil_moisture", "temperature", "humidity", "light"]  # 传感器类型
+    operator: Literal["<", ">", "<=", ">=", "=="]  # 操作符
+    threshold: float  # 阈值
 
 
 class RuleAction(BaseModel):
-    device_target: str
-    command: str
-    duration: int = Field(60, ge=0)
+    """
+    规则执行动作
+    """
+    device_target: str  # 目标设备
+    command: str  # 执行命令
+    duration: int = Field(60, ge=0)  # 执行持续时间（秒）
 
 
 class RuleCreateRequest(BaseModel):
-    rule_name: str
-    trigger: RuleTrigger
-    action: RuleAction
-    is_enabled: bool = True
+    """
+    创建规则请求
+    """
+    rule_name: str  # 规则名称
+    trigger: RuleTrigger  # 触发条件
+    action: RuleAction  # 执行动作
+    is_enabled: bool = True  # 是否启用
 
 
 class RuleLogItem(BaseModel):
-    timestamp: str
-    rule_name: str
-    trigger_value: str
-    result: str
+    """
+    规则执行日志
+    """
+    timestamp: str  # 执行时间
+    rule_name: str  # 规则名称
+    trigger_value: str  # 触发值
+    result: str  # 执行结果
 
 
 class TelemetryUploadRequest(BaseModel):
-    device_sn: str
-    auth_token: str
-    data: Dict[str, Any]
+    """
+    遥测数据上传请求
+    """
+    device_sn: str  # 设备序列号
+    auth_token: str  # 认证令牌
+    data: Dict[str, Any]  # 传感器数据
 
 
+# 创建FastAPI应用实例
 app = FastAPI(title="Smart Farm Backend (CSV-based prototype)")
 
+# 添加CORS中间件，允许跨域请求
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=["*"],  # 允许所有来源
+    allow_credentials=True,  # 允许携带凭证
+    allow_methods=["*"],  # 允许所有HTTP方法
+    allow_headers=["*"],  # 允许所有HTTP头
 )
 
 
+# 全局变量
 LATEST: Dict[str, Any] = {
-    "temperature": None,
-    "humidity": None,
-    "light": None,
-    "soil_moisture": None,
-    "timestamp": None,
+    "temperature": None,  # 最新温度
+    "humidity": None,  # 最新湿度
+    "light": None,  # 最新光照
+    "soil_moisture": None,  # 最新土壤湿度
+    "timestamp": None,  # 最新数据时间戳
 }
 
-RULES: List[Dict[str, Any]] = []
-RULE_LOGS: List[Dict[str, Any]] = []
+RULES: List[Dict[str, Any]] = []  # 规则列表
+RULE_LOGS: List[Dict[str, Any]] = []  # 规则执行日志
 
-_last_rule_eval_ts: Optional[datetime] = None
+_last_rule_eval_ts: Optional[datetime] = None  # 上次规则评估时间
 
 
 def _eval_operator(value: float, operator: str, threshold: float) -> bool:
+    """
+    评估操作符条件
+    判断传感器值是否满足规则条件
+    """
     if operator == "<":
         return value < threshold
     if operator == ">":
@@ -157,6 +204,9 @@ def _eval_operator(value: float, operator: str, threshold: float) -> bool:
 
 
 def _maybe_append_rule_log(sensor_value: float, rule: Dict[str, Any]) -> None:
+    """
+    添加规则执行日志
+    """
     global RULE_LOGS
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     trigger_value = str(sensor_value)
@@ -168,11 +218,15 @@ def _maybe_append_rule_log(sensor_value: float, rule: Dict[str, Any]) -> None:
         "result": f"已执行: {action_cmd}",
     }
     RULE_LOGS.insert(0, log_item)
-    # keep log size reasonable
+    # 保持日志大小合理
     RULE_LOGS = RULE_LOGS[:200]
 
 
 def _rule_engine_tick() -> None:
+    """
+    规则引擎轮询函数
+    定期检查传感器数据，评估规则条件，执行相应动作
+    """
     global _last_rule_eval_ts
     while True:
         try:
@@ -187,7 +241,7 @@ def _rule_engine_tick() -> None:
                 continue
 
             latest_ts: datetime = latest["timestamp"].to_pydatetime()
-            # Update latest cache for device status quickly.
+            # 快速更新最新数据缓存，用于设备状态
             LATEST["timestamp"] = latest_ts.strftime("%Y-%m-%d %H:%M:%S")
             LATEST["temperature"] = latest.get("temperature")
             LATEST["humidity"] = latest.get("humidity")
@@ -203,7 +257,7 @@ def _rule_engine_tick() -> None:
                 time.sleep(POLL_INTERVAL_SEC)
                 continue
 
-            # Evaluate rules for the new rows since last evaluation.
+            # 评估自上次评估以来的新数据行
             new_rows = df[df["timestamp"] > pd.Timestamp(_last_rule_eval_ts)]
             if not new_rows.empty:
                 with RULES_LOCK:
@@ -219,7 +273,7 @@ def _rule_engine_tick() -> None:
 
             _last_rule_eval_ts = latest_ts
         except Exception:
-            # Avoid crashing the background thread.
+            # 避免后台线程崩溃
             pass
 
         time.sleep(POLL_INTERVAL_SEC)
@@ -227,18 +281,19 @@ def _rule_engine_tick() -> None:
 
 def _sensor_simulation_tick() -> None:
     """
-    在没有树莓派/CSV 的情况下，让系统也能跑起来。
-    模拟数据会写入 CSV，后续历史/状态/规则日志都能正常工作。
+    传感器数据模拟函数
+    在没有树莓派/真实传感器的情况下，生成模拟数据
+    模拟数据会写入CSV，确保系统能够正常运行
     """
     while True:
         try:
             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-            # 经验范围：你后续可按实际传感器标定调整
-            base_temp = 24.0 + random.uniform(-1.2, 1.2)
-            base_humi = 70 + random.uniform(-4.0, 4.0)
-            base_light = 8200 + random.uniform(-700, 700)
-            base_soil = 55 + random.uniform(-7.0, 7.0)
+            # 经验范围：可根据实际传感器标定调整
+            base_temp = 24.0 + random.uniform(-1.2, 1.2)  # 温度范围：22.8-25.2℃
+            base_humi = 70 + random.uniform(-4.0, 4.0)  # 湿度范围：66-74%
+            base_light = 8200 + random.uniform(-700, 700)  # 光照范围：7500-8900 lux
+            base_soil = 55 + random.uniform(-7.0, 7.0)  # 土壤湿度范围：48-62%
 
             row = {
                 "timestamp": now,
@@ -259,10 +314,17 @@ def _sensor_simulation_tick() -> None:
 
 @app.on_event("startup")
 def _startup() -> None:
-    # Start background polling for latest values and simple rule evaluation.
+    """
+    应用启动时的初始化函数
+    启动后台线程：
+    1. 规则引擎线程 - 定期检查传感器数据，评估规则
+    2. 传感器模拟线程 - 生成模拟数据（如果启用）
+    """
+    # 启动规则引擎线程，用于定期检查传感器数据和评估规则
     t = threading.Thread(target=_rule_engine_tick, daemon=True)
     t.start()
 
+    # 如果启用了传感器模拟，启动模拟线程
     if ENABLE_SIMULATION:
         sim = threading.Thread(target=_sensor_simulation_tick, daemon=True)
         sim.start()
@@ -270,6 +332,13 @@ def _startup() -> None:
 
 @app.get("/api/v1/devices/{device_id}/status")
 def get_device_status(device_id: str) -> Dict[str, Any]:
+    """
+    获取设备状态
+    参数：
+        device_id: 设备ID
+    返回：
+        设备状态信息，包括在线状态、最后活跃时间等
+    """
     df = _load_df()
     latest = _get_latest_row(df)
 
@@ -303,6 +372,15 @@ def get_device_status(device_id: str) -> Dict[str, Any]:
 
 @app.get("/api/v1/analytics/history")
 def history(sensor_type: str, range: Literal["24h", "7d", "30d"] = "24h", interval: str = "1h") -> Dict[str, Any]:
+    """
+    获取传感器历史数据
+    参数：
+        sensor_type: 传感器类型（temperature, humidity, light, soil_moisture）
+        range: 时间范围（24h, 7d, 30d）
+        interval: 数据间隔（如1h, 30m等）
+    返回：
+        历史数据，包括时间轴、值轴、最小值和最大值
+    """
     df = _load_df()
     if df.empty:
         return {"code": 200, "data": {"x_axis": [], "y_axis": [], "min_val": None, "max_val": None}}
@@ -346,6 +424,13 @@ def history(sensor_type: str, range: Literal["24h", "7d", "30d"] = "24h", interv
 
 @app.post("/api/v1/rules/create")
 def create_rule(req: RuleCreateRequest) -> Dict[str, Any]:
+    """
+    创建规则
+    参数：
+        req: 规则创建请求，包含规则名称、触发条件和执行动作
+    返回：
+        规则创建结果，包含规则ID
+    """
     rule_id = f"rule_{uuid.uuid4().hex[:6]}"
     rule = {
         "rule_id": rule_id,
@@ -362,14 +447,25 @@ def create_rule(req: RuleCreateRequest) -> Dict[str, Any]:
 
 @app.get("/api/v1/rules/logs")
 def rule_logs() -> Dict[str, Any]:
+    """
+    获取规则执行日志
+    返回：
+        规则执行日志列表
+    """
     with RULES_LOCK:
         return {"code": 200, "data": list(RULE_LOGS)}
 
 
 @app.post("/api/v1/telemetry/upload")
 def telemetry_upload(req: TelemetryUploadRequest) -> Dict[str, Any]:
-    # If you later choose to send data from STM32->gateway->backend,
-    # this endpoint can directly append them into CSV.
+    """
+    上传遥测数据
+    如果后续选择从STM32->网关->后端发送数据，此端点可以直接将数据追加到CSV
+    参数：
+        req: 遥测数据上传请求，包含设备序列号、认证令牌和传感器数据
+    返回：
+        上传结果
+    """
     data = req.data or {}
     row = {
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -379,7 +475,7 @@ def telemetry_upload(req: TelemetryUploadRequest) -> Dict[str, Any]:
         "soil_moisture": data.get("soil_moisture"),
     }
 
-    # Basic validation.
+    # 基本验证
     for k in ["temperature", "humidity", "light", "soil_moisture"]:
         if row[k] is None:
             raise HTTPException(status_code=400, detail=f"Missing field in data: {k}")
@@ -392,21 +488,28 @@ def telemetry_upload(req: TelemetryUploadRequest) -> Dict[str, Any]:
 
 @app.get("/api/v1/analytics/report/export")
 def export_report(format: Literal["pdf", "xlsx"] = "xlsx") -> Any:
+    """
+    导出分析报告
+    参数：
+        format: 导出格式（目前仅支持xlsx）
+    返回：
+        导出的Excel文件
+    """
     if format != "xlsx":
         raise HTTPException(status_code=400, detail="Only xlsx export is implemented in this prototype.")
 
     df = _load_df()
     if df.empty:
-        # Return an empty excel.
+        # 返回空Excel文件
         df = pd.DataFrame(columns=["timestamp", "temperature", "humidity", "light", "soil_moisture"])
 
     out_path = os.path.join(".", "report.xlsx")
-    # Export last 24 hours as the simple report.
+    # 导出最近24小时的数据作为简单报告
     now = datetime.now()
     start = now - timedelta(hours=24)
     df2 = df[(df["timestamp"] >= pd.Timestamp(start)) & (df["timestamp"] <= pd.Timestamp(now))].copy()
 
-    # Convert to human-friendly format for Excel
+    # 转换为Excel友好的格式
     if not df2.empty:
         df2["timestamp"] = df2["timestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -416,7 +519,7 @@ def export_report(format: Literal["pdf", "xlsx"] = "xlsx") -> Any:
     if not os.path.exists(out_path):
         raise HTTPException(status_code=500, detail="Export failed: file not created.")
 
-    # Stream the generated XLSX file directly.
+    # 直接流式传输生成的XLSX文件
     return FileResponse(
         out_path,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
