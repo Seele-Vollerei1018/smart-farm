@@ -164,7 +164,7 @@ onMounted(() => {
           {{ loading ? '加载中...' : '刷新' }}
         </button>
         <button type="button" class="btn btn-primary" @click="handleRefresh">同步云端</button>
-        <button type="button" class="btn btn-ghost">导出告警 CSV</button>
+        <button type="button" class="btn btn-ghost">导出警告 CSV</button>
       </div>
     </header>
 
@@ -174,7 +174,7 @@ onMounted(() => {
         <span class="metric-label">温度</span>
         <span class="metric-value">
           <template v-if="loading">加载中...</template>
-          <template v-else>{{ sensorLatest.temperature }}<small>°C</small></template>
+          <template v-else>{{ typeof sensorLatest.temperature === 'number' ? sensorLatest.temperature.toFixed(2) : '0.00' }}<small>°C</small></template>
         </span>
         <span class="metric-hint">适宜生长</span>
       </article>
@@ -182,7 +182,7 @@ onMounted(() => {
         <span class="metric-label">空气湿度</span>
         <span class="metric-value">
           <template v-if="loading">加载中...</template>
-          <template v-else>{{ sensorLatest.humidity }}<small>%</small></template>
+          <template v-else>{{ typeof sensorLatest.humidity === 'number' ? sensorLatest.humidity.toFixed(2) : '0.00' }}<small>%</small></template>
         </span>
         <span class="metric-hint">略偏高</span>
       </article>
@@ -195,7 +195,7 @@ onMounted(() => {
         <span class="metric-label">光照</span>
         <span class="metric-value">
           <template v-if="loading">加载中...</template>
-          <template v-else>{{ sensorLatest.light }}<small> lux</small></template>
+          <template v-else>{{ typeof sensorLatest.light === 'number' ? sensorLatest.light.toFixed(2) : '0.00' }}<small> lux</small></template>
         </span>
         <span class="metric-hint">充足</span>
       </article>
@@ -239,7 +239,7 @@ onMounted(() => {
             <span class="soil-label">含水率</span>
             <span class="soil-val">
               <template v-if="loading">加载中...</template>
-              <template v-else>{{ sensorLatest.soil }}%</template>
+              <template v-else>{{ typeof sensorLatest.soil === 'number' ? sensorLatest.soil.toFixed(2) : '0.00' }}%</template>
             </span>
           </div>
           <div>
