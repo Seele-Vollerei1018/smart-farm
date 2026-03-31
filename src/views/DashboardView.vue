@@ -23,6 +23,15 @@ const sensorLatest = ref({
   updated: '',
 })
 
+// 存储上一次的数据，用于比较数据是否变化
+const sensorLatestCache = ref({
+  temperature: 0,
+  humidity: 0,
+  light: 0,
+  soil: 0,
+  updated: '',
+})
+
 const alerts = ref([])
 const historyRows = ref([])
 const trendTemp = ref([])
@@ -113,9 +122,9 @@ async function fetchData() {
 
     // 获取当前小时
     const currentHour = new Date().getHours()
-    
+
     // 只有在新的小时或者是第一次加载时，才更新历史记录
-    if ((tempHistory && humHistory && tempHistory.y_axis.length === humHistory.y_axis.length) && 
+    if ((tempHistory && humHistory && tempHistory.y_axis.length === humHistory.y_axis.length) &&
         (lastHistoryUpdateHour.value !== currentHour || lastHistoryUpdateHour.value === null)) {
       historyRows.value = tempHistory.y_axis.map((temp, index) => ({
         time: tempHistory.x_axis[index] || '',
@@ -123,17 +132,56 @@ async function fetchData() {
         humidity: typeof humHistory.y_axis[index] === 'number' ? humHistory.y_axis[index].toFixed(2) : '0.00',
         ph: 6.4 // 模拟pH值
       })).slice(-25).reverse()
-      
+
       // 记录上次更新历史记录的小时
       lastHistoryUpdateHour.value = currentHour
     }
 
-    // 更新最新传感器数据
+      // 更新最新传感器数据
+    let dataChanged = false
+
     if (tempHistory && tempHistory.y_axis.length > 0) {
-      sensorLatest.value.temperature = tempHistory.y_axis[tempHistory.y_axis.length - 1]
+      const newTemp = tempHistory.y_axis[tempHistory.y_axis.length - 1]
+      if (newTemp !== sensorLatestCache.value.temperature) {
+        sensorLatest.value.temperature = newTemp
+        sensorLatestCache.value.temperature = newTemp
+        dataChanged = true
+      }
     }
     if (humHistory && humHistory.y_axis.length > 0) {
-      sensorLatest.value.humidity = humHistory.y_axis[humHistory.y_axis.length - 1]
+      const newHum = humHistory.y_axis[humHistory.y_axis.length - 1]
+      if (newHum !== sensorLatestCache.value.humidity) {
+        sensorLatest.value.humidity = newHum
+        sensorLatestCache.value.humidity = newHum
+        dataChanged = true
+      }
+    }
+    if (lightHistory && lightHistory.y_axis.length > 0) {
+      const newLight = lightHistory.y_axis[lightHistory.y_axis.length - 1]
+      if (newLight !== sensorLatestCache.value.light) {
+        sensorLatest.value.light = newLight
+        sensorLatestCache.value.light = newLight
+        dataChanged = true
+      }
+    }
+    if (soilHistory && soilHistory.y_axis.length > 0) {
+      const newSoil = soilHistory.y_axis[soilHistory.y_axis.length - 1]
+      if (newSoil !== sensorLatestCache.value.soil) {
+        sensorLatest.value.soil = newSoil
+        sensorLatestCache.value.soil = newSoil
+        dataChanged = true
+      }
+    }
+    if (deviceStatus) {
+      const newUpdated = deviceStatus.last_active || ''
+      if (newUpdated !== sensorLatestCache.value.updated) {
+        sensorLatest.value.updated = newUpdated
+        sensorLatestCache.value.updated = newUpdated
+        dataChanged = true
+      }
+    }
+   if (dataChanged) {
+      (console.log('数据更新完成'))
     }
 
     // 标记初始加载完成
@@ -167,8 +215,8 @@ let refreshTimer = null
 
 onMounted(() => {
   fetchData()
-  // 每2秒自动刷新一次数据
-  refreshTimer = setInterval(fetchData, 2000)
+  // 每5秒自动刷新一次数据，确保及时获取最新数据
+  refreshTimer = setInterval(fetchData, 5000)
 })
 
 onUnmounted(() => {

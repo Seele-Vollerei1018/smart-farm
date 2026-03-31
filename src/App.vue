@@ -44,17 +44,25 @@ const toggleSidebar = () => {
   <RouterView v-if="isLoginPage" />
   <div v-else class="app">
     <aside class="sidebar" v-show="isSidebarVisible" aria-label="主导航">
-      <div class="brand">
-        <span class="brand-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M12 3v18M8 9c0-2 2-4 4-4s4 2 4 4" />
-            <path d="M6 15c2-3 5-4 6-4s4 1 6 4" />
-          </svg>
-        </span>
-        <div class="brand-text">
-          <span class="brand-name">智慧农业</span>
-          <span class="brand-sub">监测系统</span>
+      <div class="sidebar-header">
+        <div class="brand">
+          <span class="brand-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 3v18M8 9c0-2 2-4 4-4s4 2 4 4" />
+              <path d="M6 15c2-3 5-4 6-4s4 1 6 4" />
+            </svg>
+          </span>
+          <div class="brand-text">
+            <span class="brand-name">智慧农业</span>
+            <span class="brand-sub">监测系统</span>
+          </div>
         </div>
+        <button type="button" class="sidebar-collapse-btn" @click="toggleSidebar" aria-label="收起侧边栏">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+          <span></span>
+        </button>
       </div>
 
       <nav class="sidebar-nav">
@@ -144,6 +152,7 @@ const toggleSidebar = () => {
   display: flex;
   flex-direction: column;
   width: 252px;
+  max-width: 50vw;
   height: 100vh;
   padding: 1.5rem 1rem 1rem;
   box-sizing: border-box;
@@ -190,6 +199,31 @@ const toggleSidebar = () => {
   font-weight: 600;
   color: rgba(15, 81, 50, 0.65);
   margin-top: 2px;
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.sidebar-collapse-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.8rem;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--sf-green-mid);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+  z-index: 10;
 }
 
 .sidebar-nav {

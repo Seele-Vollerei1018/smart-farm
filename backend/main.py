@@ -1,6 +1,3 @@
-# 智慧农业监测系统后端
-# 基于FastAPI和CSV存储的原型实现
-
 import os
 import threading
 import time
@@ -19,16 +16,16 @@ import csv
 
 # 配置参数
 CSV_PATH = os.environ.get("SENSOR_CSV_PATH", os.path.join(".", "sensor_data.csv"))  # 传感器数据CSV文件路径
-POLL_INTERVAL_SEC = float(os.environ.get("CSV_POLL_INTERVAL_SEC", "2.0"))  # 轮询间隔（秒）
+POLL_INTERVAL_SEC = float(os.environ.get("CSV_POLL_INTERVAL_SEC", "20.0"))  # 轮询间隔（秒）
 ONLINE_DELTA_SEC = int(os.environ.get("DEVICE_OFFLINE_AFTER_SEC", "120"))  # 设备离线判断时间（秒）
 
 # 线程锁
 CSV_LOCK = threading.Lock()  # CSV文件操作锁
 RULES_LOCK = threading.Lock()  # 规则操作锁
 
-# 模拟数据配置
-ENABLE_SIMULATION = os.environ.get("ENABLE_SENSOR_SIMULATION", "true").lower() == "true"  # 是否启用传感器数据模拟
-SIM_POLL_INTERVAL_SEC = float(os.environ.get("SIM_POLL_INTERVAL_SEC", "2.0"))  # 模拟数据生成间隔（秒）
+# 模拟数据配置（已注释掉，不再使用模拟数据）
+# ENABLE_SIMULATION = os.environ.get("ENABLE_SENSOR_SIMULATION", "true").lower() == "true"  # 是否启用传感器数据模拟
+# SIM_POLL_INTERVAL_SEC = float(os.environ.get("SIM_POLL_INTERVAL_SEC", "20.0"))  # 模拟数据生成间隔（秒）
 
 
 def _ensure_csv_header_if_missing(path: str) -> None:
@@ -279,37 +276,37 @@ def _rule_engine_tick() -> None:
         time.sleep(POLL_INTERVAL_SEC)
 
 
-def _sensor_simulation_tick() -> None:
-    """
-    传感器数据模拟函数
-    在没有树莓派/真实传感器的情况下，生成模拟数据
-    模拟数据会写入CSV，确保系统能够正常运行
-    """
-    while True:
-        try:
-            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+# def _sensor_simulation_tick() -> None:
+#     """
+#     传感器数据模拟函数
+#     在没有树莓派/真实传感器的情况下，生成模拟数据
+#     模拟数据会写入CSV，确保系统能够正常运行
+#     """
+#     while True:
+#         try:
+#             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-            # 经验范围：可根据实际传感器标定调整
-            base_temp = 24.0 + random.uniform(-1.2, 1.2)  # 温度范围：22.8-25.2℃
-            base_humi = 70 + random.uniform(-4.0, 4.0)  # 湿度范围：66-74%
-            base_light = 8200 + random.uniform(-700, 700)  # 光照范围：7500-8900 lux
-            base_soil = 55 + random.uniform(-7.0, 7.0)  # 土壤湿度范围：48-62%
+#             # 经验范围：可根据实际传感器标定调整
+#             base_temp = 24.0 + random.uniform(-1.2, 1.2)  # 温度范围：22.8-25.2℃
+#             base_humi = 70 + random.uniform(-4.0, 4.0)  # 湿度范围：66-74%
+#             base_light = 8200 + random.uniform(-700, 700)  # 光照范围：7500-8900 lux
+#             base_soil = 55 + random.uniform(-7.0, 7.0)  # 土壤湿度范围：48-62%
 
-            row = {
-                "timestamp": now,
-                "temperature": int(round(base_temp)),
-                "humidity": int(round(base_humi)),
-                "light": int(round(max(0, base_light))),
-                "soil_moisture": int(round(max(0, min(100, base_soil)))),
-            }
+#             row = {
+#                 "timestamp": now,
+#                 "temperature": int(round(base_temp)),
+#                 "humidity": int(round(base_humi)),
+#                 "light": int(round(max(0, base_light))),
+#                 "soil_moisture": int(round(max(0, min(100, base_soil)))),
+#             }
 
-            with CSV_LOCK:
-                _append_row(row)
-        except Exception:
-            # 防止模拟线程异常退出
-            pass
+#             with CSV_LOCK:
+#                 _append_row(row)
+#         except Exception:
+#             # 防止模拟线程异常退出
+#             pass
 
-        time.sleep(SIM_POLL_INTERVAL_SEC)
+#         time.sleep(SIM_POLL_INTERVAL_SEC)
 
 
 def _clear_csv_daily() -> None:
@@ -346,10 +343,10 @@ def _startup() -> None:
     t = threading.Thread(target=_rule_engine_tick, daemon=True)
     t.start()
 
-    # 如果启用了传感器模拟，启动模拟线程
-    if ENABLE_SIMULATION:
-        sim = threading.Thread(target=_sensor_simulation_tick, daemon=True)
-        sim.start()
+    # 如果启用了传感器模拟，启动模拟线程（已注释掉，不再使用模拟数据）
+    # if ENABLE_SIMULATION:
+    #     sim = threading.Thread(target=_sensor_simulation_tick, daemon=True)
+    #     sim.start()
     
     # 启动每日清空CSV文件的线程
     clear_csv_thread = threading.Thread(target=_clear_csv_daily, daemon=True)
@@ -493,8 +490,9 @@ def telemetry_upload(req: TelemetryUploadRequest) -> Dict[str, Any]:
         上传结果
     """
     data = req.data or {}
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     row = {
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "timestamp": timestamp,
         "temperature": data.get("temperature"),
         "humidity": data.get("humidity"),
         "light": data.get("light"),
@@ -509,7 +507,14 @@ def telemetry_upload(req: TelemetryUploadRequest) -> Dict[str, Any]:
     with CSV_LOCK:
         _append_row(row)
 
-    return {"code": 200, "msg": "success", "server_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "commands": []}
+    # 更新缓存数据
+    LATEST["timestamp"] = timestamp
+    LATEST["temperature"] = row["temperature"]
+    LATEST["humidity"] = row["humidity"]
+    LATEST["light"] = row["light"]
+    LATEST["soil_moisture"] = row["soil_moisture"]
+
+    return {"code": 200, "msg": "success", "server_time": timestamp, "commands": []}
 
 
 @app.get("/api/v1/analytics/report/export")
