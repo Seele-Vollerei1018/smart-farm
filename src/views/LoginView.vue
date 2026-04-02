@@ -18,7 +18,7 @@ async function onSubmit() {
     return
   }
 
-  const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard'
+  const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
   router.replace(redirect)
 }
 </script>
@@ -59,7 +59,7 @@ async function onSubmit() {
   display: grid;
   place-items: center;
   padding: 1rem;
-  background: linear-gradient(140deg, #e8f8ef 0%, #f6fbf8 55%, #dff5e8 100%);
+  background: #f2f5f4;
 }
 
 .login-card {
@@ -77,12 +77,12 @@ async function onSubmit() {
   margin: 0;
   font-size: 1.4rem;
   font-weight: 800;
-  color: #0f5132;
+  color: #000000;
 }
 
 .sub {
   margin: 0.35rem 0 1.2rem;
-  color: rgba(20, 61, 46, 0.7);
+  color: rgba(0, 0, 0, 0.65);
   font-size: 0.9rem;
 }
 
@@ -94,7 +94,7 @@ async function onSubmit() {
 .label {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #143d2e;
+  color: #000000;
 }
 
 .input {
@@ -106,8 +106,8 @@ async function onSubmit() {
 }
 
 .input:focus {
-  outline: 2px solid rgba(25, 135, 84, 0.32);
-  border-color: rgba(25, 135, 84, 0.5);
+  outline: 2px solid rgba(37, 193, 143, 0.32);
+  border-color: rgba(37, 193, 143, 0.5);
 }
 
 .error {
@@ -121,7 +121,7 @@ async function onSubmit() {
   border: none;
   border-radius: 10px;
   padding: 0.62rem 0.9rem;
-  background: linear-gradient(180deg, #2d9d5f 0%, #198754 100%);
+  background: linear-gradient(180deg, #25c18f 0%, #1db882 100%);
   color: #fff;
   font-size: 0.92rem;
   font-weight: 700;

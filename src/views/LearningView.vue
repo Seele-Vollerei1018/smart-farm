@@ -19,7 +19,7 @@ const articles = [
     mins: 10,
   },
   {
-    title: '警告阈值设定与季节性策略',
+    title: '告警阈值设定与季节性策略',
     excerpt: '从固定阈值到滑动窗口，减少误报的同时不漏掉风险。',
     tag: '运维',
     mins: 7,
@@ -31,8 +31,8 @@ const articles = [
   <div class="learn">
     <header class="learn-head">
       <div>
-        <h2 class="learn-title">学习园地</h2>
-        <p class="learn-sub">精选农业物联网与温室管理短文 · 内容可后续接入 CMS 或接口</p>
+        <span>learning</span>
+        <h1 class="learn-title">趣味学习</h1>
       </div>
     </header>
 
@@ -52,26 +52,28 @@ const articles = [
 
 <style scoped>
 .learn {
-  max-width: 1100px;
+  max-width: 1280px;
   margin: 0 auto;
+  padding: 2rem;
+}
+
+.learn-head span {
+  font-size: 1rem;
+  font-weight: 400;
+  color: #333a;
+  padding: 0 .2rem;
 }
 
 .learn-title {
-  font-size: 1.35rem;
+  font-size: 2.5rem;
   font-weight: 800;
-  color: #0f5132;
+  color: #333;
   margin: 0 0 0.35rem;
-}
-
-.learn-sub {
-  margin: 0 0 1.25rem;
-  font-size: 0.88rem;
-  color: rgba(26, 46, 36, 0.65);
 }
 
 .article-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: 1rem;
 }
 
@@ -99,7 +101,7 @@ const articles = [
   margin: 0;
   font-size: 1.05rem;
   font-weight: 800;
-  color: #143d2e;
+  color: #000000;
   line-height: 1.35;
 }
 
@@ -108,7 +110,7 @@ const articles = [
   flex: 1;
   font-size: 0.88rem;
   line-height: 1.55;
-  color: rgba(26, 46, 36, 0.75);
+  color: rgba(0, 0, 0, 0.75);
 }
 
 .article-meta {
@@ -117,7 +119,7 @@ const articles = [
   justify-content: space-between;
   gap: 0.75rem;
   font-size: 0.78rem;
-  color: rgba(26, 46, 36, 0.5);
+  color: rgba(0, 0, 0, 0.5);
 }
 
 .linkish {
@@ -126,17 +128,17 @@ const articles = [
   padding: 0;
   font: inherit;
   font-weight: 700;
-  color: #198754;
+  color: #25c18f;
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
 .linkish:hover {
-  color: #146c43;
+  color: #1db882;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 900px) {
   .article-grid {
     grid-template-columns: 1fr;
   }

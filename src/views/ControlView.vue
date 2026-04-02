@@ -1,10 +1,12 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { isAuthenticated } from '../utils/auth'
+import { fetchDeviceStatus } from '../api/client'
 
-const piOnline = ref(true)
-const piPower = ref(true)
+const piOnline = ref(false)
+const piPower = ref(false)
 const canControl = ref(isAuthenticated())
+const isLoading = ref(true)
 
 const devices = ref([
   {
@@ -43,6 +45,30 @@ const logs = ref([
   { time: '2025-03-25 11:03:04', device: 'Raspberry Pi', command: 'turn_off', status: 'pending' },
 ])
 
+// 加载设备状态
+async function loadDeviceStatus() {
+  isLoading.value = true
+  try {
+    const status = await fetchDeviceStatus()
+    if (status) {
+      piOnline.value = status.status === 'online'
+      // 根据树莓派状态自动控制温室主控按钮
+      piPower.value = piOnline.value
+    }
+  } catch (error) {
+    console.error('加载设备状态失败:', error)
+    piOnline.value = false
+    piPower.value = false
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// 监听树莓派状态变化，自动更新温室主控按钮状态
+watch(piOnline, (newValue) => {
+  piPower.value = newValue
+})
+
 function statusLabel(s) {
   const map = { success: '已执行', pending: '待执行', error: '失败' }
   return map[s] || s
@@ -57,17 +83,22 @@ function onDeviceChange(d) {
     status: 'pending',
   })
 }
+
+onMounted(() => {
+  loadDeviceStatus()
+  // 每5秒刷新一次设备状态
+  setInterval(loadDeviceStatus, 5000)
+})
 </script>
 
 <template>
   <div class="ctrl">
     <header class="ctrl-head">
       <div>
-        <h2 class="ctrl-title">设备控制</h2>
+        <span>my farm</span>
+        <h1>我的农场 - 设备控制</h1>
         <p class="ctrl-sub">
           请确保树莓派在线后再操作末端设备。
-          <span class="legend"><span class="dot on"></span> 在线</span>
-          <span class="legend"><span class="dot off"></span> 离线</span>
         </p>
         <p v-if="!canControl" class="lock-tip">当前未登录，无法执行设备控制操作。</p>
       </div>
@@ -93,10 +124,9 @@ function onDeviceChange(d) {
               {{ piOnline ? '在线' : '离线' }}
             </span>
           </div>
-          <p class="pi-desc">网关状态与末端设备联动；后续对接 <code>/api/device/pi</code>。</p>
         </div>
         <label class="switch large">
-          <input v-model="piPower" type="checkbox" :disabled="!canControl || !piOnline" />
+          <input v-model="piPower" type="checkbox" disabled />
           <span class="slider" />
         </label>
       </div>
@@ -158,7 +188,6 @@ function onDeviceChange(d) {
     <article class="proto-card log-card">
       <div class="log-head">
         <h3>控制日志</h3>
-        <span class="muted">演示数据 · 对接 <code>GET /api/control/logs</code></span>
       </div>
       <div class="table-wrap">
         <table class="data-table">
@@ -197,52 +226,38 @@ function onDeviceChange(d) {
 
 <style scoped>
 .ctrl {
-  max-width: 1100px;
+  max-width: 1280px;
   margin: 0 auto;
+  padding: 2rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
 }
 
-.ctrl-title {
-  font-size: 1.35rem;
+.ctrl-head h1 {
+  font-size: 2.5rem;
   font-weight: 800;
-  color: #0f5132;
+  color: #333;
   margin: 0 0 0.35rem;
+  margin: 0;
+}
+.ctrl-head span {
+  font-size: 1rem;
+  font-weight: 400;
+  color: #333a;
+  margin: 0;
 }
 
 .ctrl-sub {
-  margin: 0;
-  font-size: 0.88rem;
-  color: rgba(26, 46, 36, 0.7);
+  margin-top: .2rem;
+  font-size: 1rem;
+  color: rgba(0, 0, 0, 0.65);
 }
 
 .lock-tip {
   margin: 0.45rem 0 0;
   color: #b02a37;
   font-size: 0.82rem;
-}
-
-.legend {
-  margin-left: 0.75rem;
-  font-size: 0.82rem;
-}
-
-.dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 4px;
-  vertical-align: middle;
-}
-
-.dot.on {
-  background: #198754;
-}
-
-.dot.off {
-  background: #dc3545;
 }
 
 .pi-card {
@@ -281,7 +296,7 @@ function onDeviceChange(d) {
   margin: 0;
   font-size: 1.1rem;
   font-weight: 800;
-  color: #143d2e;
+  color: #000000;
 }
 
 .badge {
@@ -293,7 +308,7 @@ function onDeviceChange(d) {
 }
 
 .badge-ok {
-  background: rgba(25, 135, 84, 0.15);
+  background: rgba(37, 193, 143, 0.15);
   color: #146c43;
 }
 
@@ -302,29 +317,16 @@ function onDeviceChange(d) {
   color: #b02a37;
 }
 
-.pi-desc {
-  margin: 0;
-  font-size: 0.84rem;
-  color: rgba(26, 46, 36, 0.65);
-}
-
-.pi-desc code {
-  font-size: 0.85em;
-  background: rgba(25, 135, 84, 0.08);
-  padding: 0.1rem 0.35rem;
-  border-radius: 4px;
-}
-
 .section-title {
   font-size: 0.95rem;
   font-weight: 800;
-  color: #143d2e;
+  color: #000000;
   margin: 0 0 0.65rem;
 }
 
 .device-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 1rem;
 }
 
@@ -346,19 +348,19 @@ function onDeviceChange(d) {
   margin: 0;
   font-size: 1.05rem;
   font-weight: 800;
-  color: #0f5132;
+  color: #000000;
 }
 
 .device-sub {
   font-size: 0.78rem;
-  color: rgba(26, 46, 36, 0.55);
+  color: rgba(0, 0, 0, 0.55);
 }
 
 .tag-avail {
   font-size: 0.68rem;
   font-weight: 800;
   color: #146c43;
-  background: rgba(25, 135, 84, 0.12);
+  background: rgba(37, 193, 143, 0.12);
   padding: 0.2rem 0.45rem;
   border-radius: 6px;
   white-space: nowrap;
@@ -381,7 +383,7 @@ function onDeviceChange(d) {
   margin: 0;
   font-size: 0.82rem;
   line-height: 1.45;
-  color: rgba(26, 46, 36, 0.72);
+  color: rgba(0, 0, 0, 0.72);
 }
 
 /* toggle */
@@ -465,17 +467,17 @@ function onDeviceChange(d) {
   margin: 0;
   font-size: 1rem;
   font-weight: 800;
-  color: #143d2e;
+  color: #000000;
 }
 
 .muted {
   font-size: 0.78rem;
-  color: rgba(26, 46, 36, 0.55);
+  color: rgba(0, 0, 0, 0.55);
 }
 
 .muted code {
   font-size: 0.85em;
-  background: rgba(25, 135, 84, 0.08);
+  background: rgba(37, 193, 143, 0.08);
   padding: 0.1rem 0.35rem;
   border-radius: 4px;
 }
@@ -536,7 +538,7 @@ function onDeviceChange(d) {
   color: #b02a37;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 700px) {
   .device-grid {
     grid-template-columns: 1fr;
   }

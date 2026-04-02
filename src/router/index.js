@@ -13,7 +13,7 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView,
-      meta: { requiresAuth: true },
+      // 移除 requiresAuth 元数据，让未登录用户也能访问首页
     },
     {
       path: '/login',
@@ -57,7 +57,7 @@ router.beforeEach((to) => {
   }
 
   if (to.meta.guestOnly && authed) {
-    return '/dashboard'
+    return '/' // 登录后重定向到首页
   }
 
   return true

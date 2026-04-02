@@ -48,22 +48,3 @@ export async function register(username, password, displayName) {
 export function logout() {
   localStorage.removeItem(AUTH_STORAGE_KEY)
 }
-
-export function updateUserAvatar(avatarDataUrl) {
-  const user = getAuthUser()
-  if (!user) return false
-  
-  try {
-    user.avatar = avatarDataUrl
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user))
-    return true
-  } catch (error) {
-    console.error('更新头像失败:', error)
-    return false
-  }
-}
-
-export function getUserAvatar() {
-  const user = getAuthUser()
-  return user?.avatar || null
-}
