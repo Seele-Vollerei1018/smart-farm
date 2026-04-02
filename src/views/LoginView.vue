@@ -10,9 +10,9 @@ const username = ref('')
 const password = ref('')
 const errorMessage = ref('')
 
-function onSubmit() {
+async function onSubmit() {
   errorMessage.value = ''
-  const result = loginWithPassword(username.value.trim(), password.value)
+  const result = await loginWithPassword(username.value.trim(), password.value)
   if (!result.ok) {
     errorMessage.value = result.message
     return

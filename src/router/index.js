@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import HomeView from '../views/HomeView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import ControlView from '../views/ControlView.vue'
 import LearningView from '../views/LearningView.vue'
@@ -11,7 +12,8 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      redirect: '/login',
+      component: HomeView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/login',

@@ -10,9 +10,9 @@ const isSidebarVisible = ref(true)
 
 const pageTitles = {
   login: '登录',
-  dashboard: '仪表盘',
-  control: '设备控制',
-  learning: '学习园地',
+  dashboard: '农场情况',
+  control: '我的农场',
+  learning: '趣味学习',
   home: '首页',
   about: '关于',
 }
@@ -46,15 +46,8 @@ const toggleSidebar = () => {
     <aside class="sidebar" v-show="isSidebarVisible" aria-label="主导航">
       <div class="sidebar-header">
         <div class="brand">
-          <span class="brand-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M12 3v18M8 9c0-2 2-4 4-4s4 2 4 4" />
-              <path d="M6 15c2-3 5-4 6-4s4 1 6 4" />
-            </svg>
-          </span>
           <div class="brand-text">
             <span class="brand-name">智慧农业</span>
-            <span class="brand-sub">监测系统</span>
           </div>
         </div>
         <button type="button" class="sidebar-collapse-btn" @click="toggleSidebar" aria-label="收起侧边栏">
@@ -66,62 +59,48 @@ const toggleSidebar = () => {
       </div>
 
       <nav class="sidebar-nav">
+        <RouterLink to="/" class="nav-link" active-class="nav-link--active">
+          <span>首页</span>
+        </RouterLink>
         <RouterLink to="/dashboard" class="nav-link" active-class="nav-link--active">
-          <span class="nav-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 7v5l3 2" />
-            </svg>
-          </span>
-          <span>仪表盘</span>
+          <span>农场情况</span>
         </RouterLink>
         <RouterLink to="/control" class="nav-link" active-class="nav-link--active">
-          <span class="nav-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="3" width="7" height="7" rx="1" />
-              <rect x="14" y="3" width="7" height="7" rx="1" />
-              <rect x="3" y="14" width="7" height="7" rx="1" />
-              <rect x="14" y="14" width="7" height="7" rx="1" />
-            </svg>
-          </span>
-          <span>设备控制</span>
+          <span>我的农场</span>
         </RouterLink>
         <RouterLink to="/learning" class="nav-link" active-class="nav-link--active">
-          <span class="nav-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 6h16M4 10h16M4 14h10M4 18h8" />
-              <path d="M18 14l2 2-2 2" />
-            </svg>
-          </span>
-          <span>学习园地</span>
+          <span>趣味学习</span>
         </RouterLink>
       </nav>
 
-      <p class="sidebar-foot">原型数据 · 可对接后端 API</p>
+      <div class="sidebar-bottom">
+        <div class="user-info">
+          <span class="username">{{ displayName }}</span>
+        </div>
+        <button v-if="isLoggedIn" type="button" class="logout-btn" @click="handleLogout">
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </span>
+          <span>退出登录</span>
+        </button>
+      </div>
     </aside>
 
     <div
       class="main-content"
       :class="{ 'sidebar-visible': isSidebarVisible, 'sidebar-hidden': !isSidebarVisible }"
     >
-      <header class="top-bar">
-        <div class="left-section">
-          <button type="button" class="sidebar-toggle" @click="toggleSidebar" aria-label="切换侧边栏">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          <h1 class="page-title">{{ currentPageTitle }}</h1>
-        </div>
-        <div class="user-section">
-          <span v-if="isLoggedIn" class="welcome-text">欢迎，{{ displayName }}</span>
-          <button v-if="isLoggedIn" type="button" class="login-btn logged-in" @click="handleLogout">
-            退出
-          </button>
-        </div>
-      </header>
-
       <main class="content-area">
+        <button v-if="!isSidebarVisible" type="button" class="sidebar-expand-btn" @click="toggleSidebar" aria-label="展开侧边栏">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+          <span>展开侧边栏</span>
+        </button>
         <RouterView />
       </main>
     </div>
@@ -131,9 +110,9 @@ const toggleSidebar = () => {
 <style scoped>
 .app {
   --sf-green: #0f5132;
-  --sf-green-mid: #198754;
-  --sf-green-soft: #d1e7dd;
-  --sf-surface: #f4f7f5;
+  --sf-green-mid: #25c18f;
+  --sf-green-soft: #c7efdf;
+  --sf-surface: #f2f5f4;
   display: flex;
   min-height: 100vh;
   font-family:
@@ -156,9 +135,9 @@ const toggleSidebar = () => {
   height: 100vh;
   padding: 1.5rem 1rem 1rem;
   box-sizing: border-box;
-  background: linear-gradient(165deg, #ecfdf3 0%, #d8f3dc 45%, #b7e4c7 100%);
-  border-right: 1px solid rgba(15, 81, 50, 0.12);
-  box-shadow: 4px 0 32px rgba(15, 81, 50, 0.08);
+  background: #ffffff;
+  border-right: 1px solid #e0e0e0;
+  box-shadow: 4px 0 32px rgba(0, 0, 0, 0.08);
 }
 
 .brand {
@@ -176,9 +155,9 @@ const toggleSidebar = () => {
   width: 44px;
   height: 44px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.75);
-  color: var(--sf-green-mid);
-  box-shadow: 0 4px 12px rgba(25, 135, 84, 0.2);
+  background: var(--sf-green-mid);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 193, 143, 0.3);
 }
 
 .brand-text {
@@ -188,16 +167,16 @@ const toggleSidebar = () => {
 }
 
 .brand-name {
-  font-size: 1.15rem;
+  font-size: 1.75rem;
   font-weight: 700;
-  color: var(--sf-green);
+  color: #000000;
   letter-spacing: 0.02em;
 }
 
 .brand-sub {
   font-size: 0.72rem;
   font-weight: 600;
-  color: rgba(15, 81, 50, 0.65);
+  color: #666666;
   margin-top: 2px;
 }
 
@@ -233,6 +212,11 @@ const toggleSidebar = () => {
   flex: 1;
 }
 
+.sidebar-nav span {
+  font-weight: 400;
+  font-size: 1rem;
+}
+
 .nav-link {
   display: flex;
   align-items: center;
@@ -240,7 +224,7 @@ const toggleSidebar = () => {
   padding: 0.7rem 0.9rem;
   border-radius: 12px;
   text-decoration: none;
-  color: #1b4332;
+  color: #000000;
   font-weight: 600;
   font-size: 0.95rem;
   border: 1px solid transparent;
@@ -251,15 +235,21 @@ const toggleSidebar = () => {
 }
 
 .nav-link:hover {
-  background: rgba(255, 255, 255, 0.55);
-  border-color: rgba(25, 135, 84, 0.2);
+  background: #f5f5f5;
+  border-color: #e0e0e0;
 }
 
 .nav-link--active {
-  background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.92) 100%);
-  color: var(--sf-green-mid);
-  border-color: rgba(25, 135, 84, 0.35);
-  box-shadow: 0 6px 20px rgba(25, 135, 84, 0.18);
+  background: var(--sf-green-mid);
+  color: #ffffff;
+  border-color: var(--sf-green-mid);
+  box-shadow: 0 4px 12px rgba(37, 193, 143, 0.3);
+}
+
+.nav-link--active:hover {
+  background: var(--sf-green-mid);
+  color: #ffffff;
+  border-color: var(--sf-green-mid);
 }
 
 .nav-icon {
@@ -267,9 +257,45 @@ const toggleSidebar = () => {
   opacity: 0.9;
 }
 
+.sidebar-bottom {
+  padding-top: 30px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.user-info {
+  padding: 0 0.9rem 1rem;
+}
+
+.username {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #000000;
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  border: none;
+  border-radius: 12px;
+  background: #000000;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  margin-bottom: 1rem;
+}
+
+.logout-btn:hover {
+  background: #333333;
+}
+
 .sidebar-foot {
   font-size: 0.68rem;
-  color: rgba(15, 81, 50, 0.5);
+  color: #999999;
   padding: 0 0.5rem;
   line-height: 1.4;
 }
@@ -379,6 +405,29 @@ const toggleSidebar = () => {
   flex: 1;
   padding: 1.35rem 1.5rem 2rem;
   overflow-y: auto;
+}
+
+.sidebar-expand-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 1.2rem;
+  border: none;
+  border-radius: 12px;
+  background: var(--sf-green-mid);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 12px rgba(37, 193, 143, 0.3);
+}
+
+.sidebar-expand-btn:hover {
+  background: #1db882;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(37, 193, 143, 0.4);
 }
 
 .main-content.sidebar-hidden {

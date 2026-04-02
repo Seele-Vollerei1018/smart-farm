@@ -3,6 +3,7 @@ import threading
 import time
 import uuid
 import random
+import json
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Literal, Optional
 
@@ -18,10 +19,49 @@ import csv
 CSV_PATH = os.environ.get("SENSOR_CSV_PATH", os.path.join(".", "sensor_data.csv"))  # 传感器数据CSV文件路径
 POLL_INTERVAL_SEC = float(os.environ.get("CSV_POLL_INTERVAL_SEC", "20.0"))  # 轮询间隔（秒）
 ONLINE_DELTA_SEC = int(os.environ.get("DEVICE_OFFLINE_AFTER_SEC", "120"))  # 设备离线判断时间（秒）
+USER_DATA_PATH = os.environ.get("USER_DATA_PATH", os.path.join(".", "user_data.json"))  # 用户数据JSON文件路径
+DIARY_DATA_PATH = os.environ.get("DIARY_DATA_PATH", os.path.join(".", "diary_data.json"))  # 日记数据JSON文件路径
 
 # 线程锁
 CSV_LOCK = threading.Lock()  # CSV文件操作锁
 RULES_LOCK = threading.Lock()  # 规则操作锁
+USER_LOCK = threading.Lock()  # 用户数据操作锁
+DIARY_LOCK = threading.Lock()  # 日记数据操作锁
+
+
+def _ensure_json_file(path: str, default_content: Any) -> None:
+    """
+    确保JSON文件存在并包含默认内容
+    如果文件不存在，则创建并写入默认内容
+    """
+    if os.path.exists(path) and os.path.getsize(path) > 0:
+        return
+
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(default_content, f, ensure_ascii=False, indent=2)
+
+
+def _load_json(path: str, default_content: Any) -> Any:
+    """
+    加载JSON文件数据
+    如果文件不存在或为空，则返回默认内容
+    """
+    _ensure_json_file(path, default_content)
+    with open(path, "r", encoding="utf-8") as f:
+        try:
+            return json.load(f)
+        except json.JSONDecodeError:
+            return default_content
+
+
+def _save_json(path: str, data: Any) -> None:
+    """
+    保存数据到JSON文件
+    """
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 # 模拟数据配置（已注释掉，不再使用模拟数据）
 # ENABLE_SIMULATION = os.environ.get("ENABLE_SENSOR_SIMULATION", "true").lower() == "true"  # 是否启用传感器数据模拟
@@ -152,6 +192,39 @@ class TelemetryUploadRequest(BaseModel):
     device_sn: str  # 设备序列号
     auth_token: str  # 认证令牌
     data: Dict[str, Any]  # 传感器数据
+
+
+class UserLoginRequest(BaseModel):
+    """
+    用户登录请求
+    """
+    username: str  # 用户名
+    password: str  # 密码
+
+
+class UserRegisterRequest(BaseModel):
+    """
+    用户注册请求
+    """
+    username: str  # 用户名
+    password: str  # 密码
+    displayName: str  # 显示名称
+
+
+class DiaryCreateRequest(BaseModel):
+    """
+    创建日记请求
+    """
+    title: str  # 日记标题
+    content: str  # 日记内容
+
+
+class DiaryUpdateRequest(BaseModel):
+    """
+    更新日记请求
+    """
+    title: str  # 日记标题
+    content: str  # 日记内容
 
 
 # 创建FastAPI应用实例
@@ -556,4 +629,215 @@ def export_report(format: Literal["pdf", "xlsx"] = "xlsx") -> Any:
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         filename="smart_farm_report.xlsx",
     )
+
+
+@app.post("/api/v1/auth/login")
+def login(req: UserLoginRequest) -> Dict[str, Any]:
+    """
+    用户登录
+    参数：
+        req: 登录请求，包含用户名和密码
+    返回：
+        登录结果，包含用户信息和登录状态
+    """
+    with USER_LOCK:
+        users = _load_json(USER_DATA_PATH, {})
+        user = users.get(req.username)
+        
+        # 测试账号：admin / admin123
+        if req.username == "admin" and req.password == "admin123":
+            return {
+                "ok": True,
+                "user": {
+                    "username": "admin",
+                    "displayName": "admin",
+                    "loginAt": datetime.now().isoformat()
+                }
+            }
+        
+        if not user or user.get("password") != req.password:
+            return {
+                "ok": False,
+                "message": "账号或密码错误"
+            }
+        
+        # 更新登录时间
+        user["loginAt"] = datetime.now().isoformat()
+        users[req.username] = user
+        _save_json(USER_DATA_PATH, users)
+        
+        return {
+            "ok": True,
+            "user": {
+                "username": user["username"],
+                "displayName": user["displayName"],
+                "loginAt": user["loginAt"]
+            }
+        }
+
+
+@app.post("/api/v1/auth/register")
+def register(req: UserRegisterRequest) -> Dict[str, Any]:
+    """
+    用户注册
+    参数：
+        req: 注册请求，包含用户名、密码和显示名称
+    返回：
+        注册结果
+    """
+    with USER_LOCK:
+        users = _load_json(USER_DATA_PATH, {})
+        
+        if req.username in users:
+            return {
+                "ok": False,
+                "message": "用户名已存在"
+            }
+        
+        # 创建新用户
+        users[req.username] = {
+            "username": req.username,
+            "password": req.password,
+            "displayName": req.displayName,
+            "createdAt": datetime.now().isoformat()
+        }
+        
+        _save_json(USER_DATA_PATH, users)
+        
+        return {
+            "ok": True,
+            "message": "注册成功"
+        }
+
+
+@app.get("/api/v1/diaries")
+def get_diaries(username: str) -> Dict[str, Any]:
+    """
+    获取用户的日记列表
+    参数：
+        username: 用户名
+    返回：
+        日记列表
+    """
+    with DIARY_LOCK:
+        diaries = _load_json(DIARY_DATA_PATH, {})
+        user_diaries = diaries.get(username, [])
+        return {
+            "code": 200,
+            "data": user_diaries
+        }
+
+
+@app.post("/api/v1/diaries")
+def create_diary(username: str, req: DiaryCreateRequest) -> Dict[str, Any]:
+    """
+    创建新日记
+    参数：
+        username: 用户名
+        req: 日记创建请求，包含标题和内容
+    返回：
+        创建结果
+    """
+    with DIARY_LOCK:
+        diaries = _load_json(DIARY_DATA_PATH, {})
+        user_diaries = diaries.get(username, [])
+        
+        # 生成新日记ID
+        new_id = max([d.get("id", 0) for d in user_diaries]) + 1 if user_diaries else 1
+        
+        new_diary = {
+            "id": new_id,
+            "title": req.title,
+            "content": req.content,
+            "createdAt": datetime.now().isoformat(),
+            "updatedAt": datetime.now().isoformat()
+        }
+        
+        user_diaries.append(new_diary)
+        diaries[username] = user_diaries
+        _save_json(DIARY_DATA_PATH, diaries)
+        
+        return {
+            "code": 200,
+            "msg": "日记创建成功",
+            "data": new_diary
+        }
+
+
+@app.put("/api/v1/diaries/{diary_id}")
+def update_diary(username: str, diary_id: int, req: DiaryUpdateRequest) -> Dict[str, Any]:
+    """
+    更新日记
+    参数：
+        username: 用户名
+        diary_id: 日记ID
+        req: 日记更新请求，包含标题和内容
+    返回：
+        更新结果
+    """
+    with DIARY_LOCK:
+        diaries = _load_json(DIARY_DATA_PATH, {})
+        user_diaries = diaries.get(username, [])
+        
+        # 查找日记
+        diary_index = None
+        for i, d in enumerate(user_diaries):
+            if d.get("id") == diary_id:
+                diary_index = i
+                break
+        
+        if diary_index is None:
+            return {
+                "code": 404,
+                "msg": "日记不存在"
+            }
+        
+        # 更新日记
+        user_diaries[diary_index] = {
+            **user_diaries[diary_index],
+            "title": req.title,
+            "content": req.content,
+            "updatedAt": datetime.now().isoformat()
+        }
+        
+        diaries[username] = user_diaries
+        _save_json(DIARY_DATA_PATH, diaries)
+        
+        return {
+            "code": 200,
+            "msg": "日记更新成功",
+            "data": user_diaries[diary_index]
+        }
+
+
+@app.delete("/api/v1/diaries/{diary_id}")
+def delete_diary(username: str, diary_id: int) -> Dict[str, Any]:
+    """
+    删除日记
+    参数：
+        username: 用户名
+        diary_id: 日记ID
+    返回：
+        删除结果
+    """
+    with DIARY_LOCK:
+        diaries = _load_json(DIARY_DATA_PATH, {})
+        user_diaries = diaries.get(username, [])
+        
+        # 过滤掉要删除的日记
+        new_user_diaries = [d for d in user_diaries if d.get("id") != diary_id]
+        
+        if len(new_user_diaries) == len(user_diaries):
+            return {
+                "code": 404,
+                "msg": "日记不存在"
+            }
+        
+        diaries[username] = new_user_diaries
+        _save_json(DIARY_DATA_PATH, diaries)
+        
+        return {
+            "code": 200,
+            "msg": "日记删除成功"
+        }
 
