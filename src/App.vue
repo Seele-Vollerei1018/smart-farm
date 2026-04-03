@@ -47,6 +47,13 @@ watch(
   },
 )
 
+watch(
+  currentUser,
+  async () => {
+    await loadTasks()
+  },
+)
+
 const handleLogout = () => {
   logout()
   currentUser.value = null
