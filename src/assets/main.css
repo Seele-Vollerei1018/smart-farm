@@ -10,7 +10,13 @@
   font-weight: normal;
 }
 
-/* 智慧农业 — 原型卡片：悬停轻微上移（后续可替换为接入 API 的容器） */
+.main-content {
+  transform-origin: top left;
+  width: 125%; /* 补偿缩放，使内容占满视口 */
+  min-height: 125vh;
+}
+
+/* 智慧农业 — 原型卡片：悬停轻微上移 */
 .proto-card {
   background: var(--sf-card-bg, #ffffff);
   border-radius: 16px;

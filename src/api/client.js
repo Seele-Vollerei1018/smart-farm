@@ -1,5 +1,5 @@
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+  import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '' : 'http://localhost:8001')
 
 function buildUrl(path) {
   const base = API_BASE_URL.replace(/\/+$/, '')
@@ -136,6 +136,27 @@ export async function updateDiary(username, diaryId, title, content) {
 
 export async function deleteDiary(username, diaryId) {
   const res = await deleteJson(`/api/v1/diaries/${diaryId}?username=${encodeURIComponent(username)}`)
+  return res
+}
+
+// 待办任务相关 API
+export async function getTasks(username) {
+  const res = await getJson(`/api/v1/tasks?username=${encodeURIComponent(username)}`)
+  return res?.data || []
+}
+
+export async function createTask(username, title, description = '') {
+  const res = await postJson(`/api/v1/tasks?username=${encodeURIComponent(username)}`, { title, description })
+  return res
+}
+
+export async function updateTask(username, taskId, title, description, completed) {
+  const res = await putJson(`/api/v1/tasks/${taskId}?username=${encodeURIComponent(username)}`, { title, description, completed })
+  return res
+}
+
+export async function deleteTask(username, taskId) {
+  const res = await deleteJson(`/api/v1/tasks/${taskId}?username=${encodeURIComponent(username)}`)
   return res
 }
 

@@ -228,21 +228,21 @@ onMounted(() => {
 .ctrl {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 0 0 0 2rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
 }
 
 .ctrl-head h1 {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 800;
   color: #333;
   margin: 0 0 0.35rem;
   margin: 0;
 }
 .ctrl-head span {
-  font-size: 1rem;
+  font-size: 。8rem;
   font-weight: 400;
   color: #333a;
   margin: 0;
@@ -326,7 +326,7 @@ onMounted(() => {
 
 .device-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
 }
 
@@ -465,7 +465,7 @@ onMounted(() => {
 
 .log-head h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.8rem;
   font-weight: 800;
   color: #000000;
 }

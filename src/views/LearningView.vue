@@ -54,18 +54,18 @@ const articles = [
 .learn {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 0 0 0 2rem;
 }
 
 .learn-head span {
-  font-size: 1rem;
+  font-size: 0.8rem;
   font-weight: 400;
   color: #333a;
   padding: 0 .2rem;
 }
 
 .learn-title {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 800;
   color: #333;
   margin: 0 0 0.35rem;

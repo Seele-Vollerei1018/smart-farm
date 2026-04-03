@@ -28,7 +28,8 @@ async function loadDiaries() {
   isLoading.value = true
   try {
     const diaries = await getDiaries(user.username)
-    farmDiaries.value = diaries
+    // 按创建时间倒序排列，最新的在前
+    farmDiaries.value = diaries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
   } catch (error) {
     console.error('加载日记失败:', error)
   } finally {
@@ -149,7 +150,7 @@ onMounted(() => {
         <section class="feature-cards">
           <router-link to="/dashboard" class="feature-card">
             <div class="card-image">
-              <!-- 后续添加图片 -->
+              <img src="@/assets/花1.jpg" alt="农场情况" />
             </div>
             <div class="card-content">
               <h1>农场情况</h1>
@@ -159,7 +160,7 @@ onMounted(() => {
 
           <router-link to="/control" class="feature-card">
             <div class="card-image">
-              <!-- 后续添加图片 -->
+              <img src="@/assets/花2.jpg" alt="我的农场" />
             </div>
             <div class="card-content">
               <h1>我的农场</h1>
@@ -169,7 +170,7 @@ onMounted(() => {
 
           <router-link to="/learning" class="feature-card">
             <div class="card-image">
-              <!-- 后续添加图片 -->
+              <img src="@/assets/花3.jpg" alt="趣味学习" />
             </div>
             <div class="card-content">
               <h1>趣味学习</h1>
@@ -233,7 +234,7 @@ onMounted(() => {
 .home {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 0 0 0 2rem;
 }
 
 .home-header {
@@ -274,6 +275,16 @@ onMounted(() => {
   height: 2.5rem;
   width: auto;
   vertical-align: middle;
+  animation: bounce 2s infinite ease-in-out;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 .search-box input {
@@ -294,100 +305,10 @@ onMounted(() => {
   min-width: 0;
 }
 
-.home-sidebar {
-  width: 400px;
-  position: fixed;
-  right: 2rem;
-  top: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  z-index: 10;
-}
-
-.user-profile {
-  background: white;
-  border-radius: 12px;
-  padding: 1rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.user-profile .avatar {
-  position: relative;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  overflow: hidden;
-  cursor: pointer;
-  background: #e0e0e0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.user-profile .avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.avatar-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #999;
-}
-
-.avatar-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.avatar-overlay span {
-  color: white;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.user-profile .avatar:hover .avatar-overlay {
-  opacity: 1;
-}
-
-.user-profile .user-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.user-profile .username {
-  font-weight: 700;
-  color: #000;
-  font-size: 1.2rem;
-}
-
-.user-profile .welcome {
-  font-size: 0.8rem;
-  color: #666;
-}
-
 .feature-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
+  gap: 1rem;
   margin-bottom: 2rem;
 }
 
@@ -401,7 +322,7 @@ onMounted(() => {
   text-decoration: none;
   color: inherit;
   position: relative;
-  height: 280px;
+  height: 200px;
 }
 
 .feature-card:hover {
@@ -417,26 +338,32 @@ onMounted(() => {
   justify-content: center;
 }
 
+.card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .card-content {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
   padding: 1rem;
-  background: transparent;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
 }
 
 .card-content h1 {
   margin: 0 0 0.2rem 0;
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  color: #000;
+  color: #fff;
 }
 
 .card-content p {
   margin: 0;
-  font-size: 0.9rem;
-  color: #000;
+  font-size: 0.7rem;
+  color: #fff;
 }
 
 .farm-diary {
@@ -567,7 +494,7 @@ onMounted(() => {
 
 .diary-header h4 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: #333;
 }
@@ -694,238 +621,11 @@ onMounted(() => {
   transition: background 0.2s;
 }
 
-.calendar-section {
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  width: 100%;
-  aspect-ratio: 1/1;
-  display: flex;
-  flex-direction: column;
-}
-
-.calendar-section h3 {
-  margin: 0 0 0.75rem 0;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #333;
-}
-
-.calendar-header h4 {
-  margin: 0 0 0.75rem 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #666;
-}
-
-.calendar-weekdays {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 0.3rem;
-  margin-bottom: 0.3rem;
-}
-
-.calendar-weekdays span {
-  text-align: center;
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #666;
-  padding: 0.3rem;
-}
-
-.calendar-days {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 0.3rem;
-  flex: 1;
-}
-
-.calendar-day {
-  text-align: center;
-  padding: 0.5rem;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #333;
-  transition: background 0.2s;
-  min-height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.calendar-day:hover {
-  background: #f0f0f0;
-}
-
-.calendar-day.today {
-  background: #25c18f;
-  color: white;
-  font-weight: 600;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  margin: 0 auto;
-}
-
-.calendar-day.other-month {
-  color: #ccc;
-}
-
-.tasks-section {
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.tasks-section h3 {
-  margin: 0 0 1rem 0;
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: #333;
-}
-
-.tasks-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.task-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: #f9f9f9;
-  border-radius: 8px;
-}
-
-.task-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-left: auto;
-}
-
-.task-dot {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #ff4444;
-  margin-top: 0.25rem;
-  flex-shrink: 0;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.task-dot:hover {
-  transform: scale(1.1);
-  box-shadow: 0 0 8px rgba(255, 68, 68, 0.4);
-}
-
-.task-dot-completed {
-  background: #25c18f;
-  animation: pulse 0.4s ease;
-}
-
-.task-dot-completed:hover {
-  box-shadow: 0 0 8px rgba(37, 193, 143, 0.4);
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.3);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-.check-icon {
-  width: 14px;
-  height: 14px;
-  color: white;
-  animation: checkDraw 0.3s ease forwards;
-}
-
-@keyframes checkDraw {
-  0% {
-    stroke-dasharray: 20;
-    stroke-dashoffset: 20;
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    stroke-dasharray: 20;
-    stroke-dashoffset: 0;
-    opacity: 1;
-  }
-}
-
-.task-completed .task-content h4 {
-  text-decoration: line-through;
-  color: #999;
-}
-
-.task-completed .task-content p {
-  color: #bbb;
-}
-
-.task-content h4 {
-  margin: 0 0 0.25rem 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #333;
-  word-break: break-word;
-  transition: all 0.3s ease;
-}
-
-.task-content p {
-  margin: 0;
-  font-size: 0.8rem;
-  color: #666;
-  word-break: break-word;
-  transition: all 0.3s ease;
-}
-
 @media (max-width: 1024px) {
   .home-main {
     flex-direction: column;
     margin-right: 0;
   }
-
-  .home-sidebar {
-    width: 100%;
-    position: static;
-    flex-direction: row;
-    flex-wrap: wrap;
-    right: auto;
-    top: auto;
-    bottom: auto;
-  }
-
-  .user-profile,
-  .calendar-section,
-  .tasks-section {
-    flex: 1;
-    min-width: 250px;
-  }
-
-
 }
 
 @media (max-width: 768px) {
@@ -946,30 +646,5 @@ onMounted(() => {
   .feature-cards {
     grid-template-columns: 1fr;
   }
-
-  .home-sidebar {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 1rem;
-  }
-
-  .user-profile {
-    width: 100%;
-    justify-content: flex-end;
-  }
-
-  .calendar-section,
-  .tasks-section {
-    flex: 1;
-    min-width: calc(50% - 0.5rem);
-    height: 300px;
-  }
-
-  .tasks-list {
-    overflow-y: auto;
-    max-height: calc(100% - 2rem);
-  }
-
-
 }
 </style>

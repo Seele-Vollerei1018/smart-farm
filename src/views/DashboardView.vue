@@ -443,7 +443,7 @@ onUnmounted(() => {
 .dash {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 0 0 0 2rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -458,14 +458,14 @@ onUnmounted(() => {
 }
 
 .dash-head span {
-  font-size: 1rem;
+  font-size: .8rem;
   font-weight: 400;
   color: #333a;
   padding: 0 .2rem;
 }
 
 .dash-title {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 800;
   color: #333;
   margin: 0 0 0.25rem;
@@ -557,9 +557,11 @@ onUnmounted(() => {
 }
 
 .icon-img {
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   opacity: 0.8;
+  object-fit: contain;
+  display: block;
 }
 
 @keyframes float {
@@ -576,7 +578,7 @@ onUnmounted(() => {
 }
 
 .metric-label {
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -584,7 +586,7 @@ onUnmounted(() => {
 }
 
 .metric-value {
-  font-size: 1.65rem;
+  font-size: 1rem;
   font-weight: 800;
   color: #000000;
   line-height: 1.1;
@@ -598,7 +600,7 @@ onUnmounted(() => {
 }
 
 .metric-hint {
-  font-size: 0.82rem;
+  font-size: 0.72rem;
   color: #25c18f;
   font-weight: 600;
 }
@@ -626,7 +628,7 @@ onUnmounted(() => {
 
 .panel-head h2 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 800;
   color: #000000;
 }

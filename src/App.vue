@@ -2,6 +2,8 @@
 import { computed, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { getAuthUser, logout } from './utils/auth'
+import { getTasks as apiGetTasks, createTask as apiCreateTask, updateTask as apiUpdateTask, deleteTask as apiDeleteTask } from './api/client'
+import defaultAvatar from '@/assets/头像.svg'
 
 const route = useRoute()
 const router = useRouter()
@@ -22,8 +24,7 @@ const isLoginPage = computed(() => route.name === 'login')
 const isLoggedIn = computed(() => !!currentUser.value)
 const displayName = computed(() => currentUser.value?.displayName || 'admin')
 const userAvatar = computed(() => {
-  // 默认头像
-  return '/src/assets/头像.svg'
+  return defaultAvatar
 })
 
 // 日历相关
@@ -110,35 +111,20 @@ function handleAvatarUpload(event) {
   reader.readAsDataURL(file)
 }
 
-// 从本地存储加载任务
-function loadTasks() {
+// 从后端加载任务
+async function loadTasks() {
   const user = getAuthUser()
   if (!user) return
 
   try {
-    const storedTasks = localStorage.getItem(`tasks_${user.username}`)
-    if (storedTasks) {
-      tasks.value = JSON.parse(storedTasks)
-    }
+    tasks.value = await apiGetTasks(user.username)
   } catch (error) {
     console.error('加载任务失败:', error)
   }
 }
 
-// 保存任务到本地存储
-function saveTasks() {
-  const user = getAuthUser()
-  if (!user) return
-
-  try {
-    localStorage.setItem(`tasks_${user.username}`, JSON.stringify(tasks.value))
-  } catch (error) {
-    console.error('保存任务失败:', error)
-  }
-}
-
 // 添加任务
-function addTask() {
+async function addTask() {
   if (!newTask.value.title.trim()) return
 
   const user = getAuthUser()
@@ -147,17 +133,18 @@ function addTask() {
     return
   }
 
-  const newId = tasks.value.length > 0 ? Math.max(...tasks.value.map(t => t.id)) + 1 : 1
-
-  tasks.value.unshift({
-    id: newId,
-    title: newTask.value.title,
-    description: newTask.value.description,
-    completed: false
-  })
-
-  saveTasks()
-  cancelTaskEdit()
+  try {
+    const response = await apiCreateTask(user.username, newTask.value.title, newTask.value.description)
+    if (response?.data) {
+      tasks.value.unshift(response.data)
+    } else {
+      await loadTasks()
+    }
+    cancelTaskEdit()
+  } catch (error) {
+    console.error('添加任务失败:', error)
+    alert('添加任务失败，请重试')
+  }
 }
 
 // 编辑任务
@@ -168,7 +155,7 @@ function editTask(task) {
 }
 
 // 更新任务
-function updateTask() {
+async function updateTask() {
   if (!newTask.value.title.trim()) return
 
   const user = getAuthUser()
@@ -177,32 +164,46 @@ function updateTask() {
     return
   }
 
-  const index = tasks.value.findIndex(t => t.id === editingTask.value.id)
-  if (index !== -1) {
-    tasks.value[index] = {
-      ...tasks.value[index],
-      title: newTask.value.title,
-      description: newTask.value.description
-    }
-    saveTasks()
+  try {
+    await apiUpdateTask(user.username, editingTask.value.id, newTask.value.title, newTask.value.description, false)
+    await loadTasks()
     cancelTaskEdit()
+  } catch (error) {
+    console.error('更新任务失败:', error)
+    alert('更新任务失败，请重试')
   }
 }
 
 // 删除任务
-function deleteTask(id) {
+async function deleteTask(id) {
   if (!confirm('确定要删除这个任务吗？')) return
 
-  tasks.value = tasks.value.filter(t => t.id !== id)
-  saveTasks()
+  const user = getAuthUser()
+  if (!user) return
+
+  try {
+    await apiDeleteTask(user.username, id)
+    tasks.value = tasks.value.filter(t => t.id !== id)
+  } catch (error) {
+    console.error('删除任务失败:', error)
+    alert('删除任务失败，请重试')
+  }
 }
 
 // 切换任务完成状态
-function toggleTaskComplete(taskId) {
+async function toggleTaskComplete(taskId) {
   const task = tasks.value.find(t => t.id === taskId)
-  if (task) {
+  if (!task) return
+
+  const user = getAuthUser()
+  if (!user) return
+
+  try {
+    await apiUpdateTask(user.username, taskId, task.title, task.description, !task.completed)
     task.completed = !task.completed
-    saveTasks()
+  } catch (error) {
+    console.error('更新任务状态失败:', error)
+    alert('更新任务状态失败，请重试')
   }
 }
 
@@ -214,9 +215,9 @@ function cancelTaskEdit() {
 }
 
 // 初始化
-function init() {
+async function init() {
   generateCalendar()
-  loadTasks()
+  await loadTasks()
 
   // 每天凌晨0点自动更新日期
   const now = new Date()
@@ -432,6 +433,7 @@ init()
     -apple-system,
     sans-serif;
   color: #1a2e24;
+  overflow: hidden;
 }
 
 .sidebar {
@@ -525,7 +527,7 @@ init()
   text-decoration: none;
   color: #000000;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 1rem;
   border: 1px solid transparent;
   transition:
     background 0.2s ease,
@@ -562,7 +564,7 @@ init()
 }
 
 .user-info {
-  padding: 0 0.9rem 1rem;
+  padding: 0.9rem;
 }
 
 .username {
@@ -732,7 +734,7 @@ init()
 .main-content {
   flex: 1;
   margin-left: 252px;
-  margin-right: 450px; /* 为右边栏留出空间，包括宽度和偏移 */
+  margin-right: 400px; /* 为右边栏留出空间 */
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -742,41 +744,45 @@ init()
 
 .main-content.sidebar-hidden {
   margin-left: 0;
-  margin-right: 450px;
+  margin-right: 400px;
 }
 
 /* 全局右边栏样式 */
 .global-sidebar {
-  width: 400px;
+  width: 350px;
   position: fixed;
-  right: 2rem;
-  top: 2rem;
+  right: 0;
+  top: 0;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 0.7rem;
   z-index: 10;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: 1.5rem;
-  max-height: calc(100vh - 4rem);
+  border-radius: 0 0 0 12px;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  padding: 0.8rem;
+  height: 100vh;
+  box-sizing: border-box;
   overflow-y: auto;
 }
 
 .user-profile {
   background: white;
   border-radius: 12px;
-  padding: 1rem;
+  padding: 0.75rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
+  width: 100%;
+  height: 70px;
+  box-sizing: border-box;
 }
 
 .user-profile .avatar {
   position: relative;
-  width: 50px;
-  height: 50px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   overflow: hidden;
   cursor: pointer;
@@ -817,7 +823,7 @@ init()
 
 .avatar-overlay span {
   color: white;
-  font-size: 0.75rem;
+  font-size: 0.55rem;
   font-weight: 500;
 }
 
@@ -845,59 +851,71 @@ init()
 .calendar-section {
   background: white;
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 1rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   width: 100%;
-  aspect-ratio: 1/1;
+  height: 50%;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  overflow: hidden;
 }
 
 .calendar-section h1 {
-  margin: 0 0 0.75rem 0;
-  font-size: 1.5rem;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.2rem;
   font-weight: 600;
   color: #333;
+  flex-shrink: 0;
 }
 
 .calendar-header h4 {
-  margin: 0 0 0.75rem 0;
-  font-size: 0.9rem;
+  margin: 0 0 0.5rem 0;
+  font-size: 0.8rem;
   font-weight: 500;
   color: #666;
+  flex-shrink: 0;
 }
 
 .calendar-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 0.3rem;
-  margin-bottom: 0.3rem;
+  gap: 0.2rem;
+  margin-bottom: 0.2rem;
+  flex-shrink: 0;
 }
 
 .calendar-weekdays span {
   text-align: center;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 600;
   color: #666;
   padding: 0.3rem;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 .calendar-days {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 0.3rem;
+  gap: 0.2rem;
   flex: 1;
+  min-height: 0;
 }
 
 .calendar-day {
   text-align: center;
-  padding: 0.5rem;
-  border-radius: 8px;
-  font-size: 1rem;
+  padding: 0.3rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
   font-weight: 700;
   color: #333;
   transition: background 0.2s;
-  min-height: 36px;
+  min-height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -910,12 +928,16 @@ init()
 .calendar-day.today {
   background: #25c18f;
   color: white;
-  font-weight: 600;
+  text-align: center;
+  padding: 0.3rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  margin: 0 auto;
 }
 
 .calendar-day.other-month {
@@ -927,8 +949,17 @@ init()
   border-radius: 12px;
   padding: 1.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  max-height: 300px;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  box-sizing: border-box;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tasks-section::-webkit-scrollbar {
+  display: none;
 }
 
 .tasks-section h3 {
@@ -944,6 +975,12 @@ init()
   gap: 1rem;
   overflow-y: auto;
   max-height: calc(100% - 2rem);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tasks-list::-webkit-scrollbar {
+  display: none;
 }
 
 .task-item {
@@ -963,8 +1000,8 @@ init()
 }
 
 .task-dot {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: #ff4444;
   margin-top: 0.25rem;
@@ -1056,12 +1093,12 @@ init()
   background: #25c18f;
   color: white;
   border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 25px;
-  font-size: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
-  margin-top: 1rem;
+  margin-top: 0;
   transition: background 0.2s;
 }
 
@@ -1073,12 +1110,12 @@ init()
   background: #000000;
   color: white;
   border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 25px;
-  font-size: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
-  margin-top: 1rem;
+  margin-top: 0;
   transition: background 0.2s;
 }
 
@@ -1090,10 +1127,10 @@ init()
   background: #25c18f;
   color: white;
   border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 25px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  padding: 0.35rem 0.7rem;
+  border-radius: 15px;
+  font-size: 0.75rem;
+  font-weight: 500;
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -1102,10 +1139,10 @@ init()
   background: #000000;
   color: white;
   border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 25px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  padding: 0.35rem 0.7rem;
+  border-radius: 15px;
+  font-size: 0.75rem;
+  font-weight: 500;
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -1180,7 +1217,7 @@ init()
 
 .section-header h1 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: #333;
 }
@@ -1193,10 +1230,6 @@ init()
   .main-content {
     margin-left: 220px;
     margin-right: 400px; /* 为右边栏留出空间 */
-  }
-
-  .global-sidebar {
-    width: 350px;
   }
 
   .main-content.sidebar-hidden {
@@ -1217,15 +1250,6 @@ init()
 
   .main-content.sidebar-visible {
     margin-left: 0;
-  }
-
-  .global-sidebar {
-    position: static;
-    width: 100%;
-    right: 0;
-    top: 0;
-    max-height: none;
-    margin: 1rem 0;
   }
 
   .welcome-text {
