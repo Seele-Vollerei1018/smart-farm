@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import HomeView from '../views/HomeView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import ControlView from '../views/ControlView.vue'
 import LearningView from '../views/LearningView.vue'
@@ -11,7 +12,8 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      redirect: '/login',
+      component: HomeView,
+      // 移除 requiresAuth 元数据，让未登录用户也能访问首页
     },
     {
       path: '/login',
@@ -55,7 +57,7 @@ router.beforeEach((to) => {
   }
 
   if (to.meta.guestOnly && authed) {
-    return '/dashboard'
+    return '/' // 登录后重定向到首页
   }
 
   return true

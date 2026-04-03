@@ -23,6 +23,15 @@ const sensorLatest = ref({
   updated: '',
 })
 
+// 存储上一次的数据，用于比较数据是否变化
+const sensorLatestCache = ref({
+  temperature: 0,
+  humidity: 0,
+  light: 0,
+  soil: 0,
+  updated: '',
+})
+
 const alerts = ref([])
 const historyRows = ref([])
 const trendTemp = ref([])
@@ -100,7 +109,7 @@ async function fetchData() {
       sensorLatest.value.soil = soilHistory.y_axis[soilHistory.y_axis.length - 1]
     }
 
-    // 获取规则日志（警告）
+    // 获取规则日志（告警）
     const logs = await fetchRuleLogs()
     if (logs) {
       alerts.value = logs.map(log => ({
@@ -113,9 +122,9 @@ async function fetchData() {
 
     // 获取当前小时
     const currentHour = new Date().getHours()
-    
+
     // 只有在新的小时或者是第一次加载时，才更新历史记录
-    if ((tempHistory && humHistory && tempHistory.y_axis.length === humHistory.y_axis.length) && 
+    if ((tempHistory && humHistory && tempHistory.y_axis.length === humHistory.y_axis.length) &&
         (lastHistoryUpdateHour.value !== currentHour || lastHistoryUpdateHour.value === null)) {
       historyRows.value = tempHistory.y_axis.map((temp, index) => ({
         time: tempHistory.x_axis[index] || '',
@@ -123,17 +132,56 @@ async function fetchData() {
         humidity: typeof humHistory.y_axis[index] === 'number' ? humHistory.y_axis[index].toFixed(2) : '0.00',
         ph: 6.4 // 模拟pH值
       })).slice(-25).reverse()
-      
+
       // 记录上次更新历史记录的小时
       lastHistoryUpdateHour.value = currentHour
     }
 
-    // 更新最新传感器数据
+      // 更新最新传感器数据
+    let dataChanged = false
+
     if (tempHistory && tempHistory.y_axis.length > 0) {
-      sensorLatest.value.temperature = tempHistory.y_axis[tempHistory.y_axis.length - 1]
+      const newTemp = tempHistory.y_axis[tempHistory.y_axis.length - 1]
+      if (newTemp !== sensorLatestCache.value.temperature) {
+        sensorLatest.value.temperature = newTemp
+        sensorLatestCache.value.temperature = newTemp
+        dataChanged = true
+      }
     }
     if (humHistory && humHistory.y_axis.length > 0) {
-      sensorLatest.value.humidity = humHistory.y_axis[humHistory.y_axis.length - 1]
+      const newHum = humHistory.y_axis[humHistory.y_axis.length - 1]
+      if (newHum !== sensorLatestCache.value.humidity) {
+        sensorLatest.value.humidity = newHum
+        sensorLatestCache.value.humidity = newHum
+        dataChanged = true
+      }
+    }
+    if (lightHistory && lightHistory.y_axis.length > 0) {
+      const newLight = lightHistory.y_axis[lightHistory.y_axis.length - 1]
+      if (newLight !== sensorLatestCache.value.light) {
+        sensorLatest.value.light = newLight
+        sensorLatestCache.value.light = newLight
+        dataChanged = true
+      }
+    }
+    if (soilHistory && soilHistory.y_axis.length > 0) {
+      const newSoil = soilHistory.y_axis[soilHistory.y_axis.length - 1]
+      if (newSoil !== sensorLatestCache.value.soil) {
+        sensorLatest.value.soil = newSoil
+        sensorLatestCache.value.soil = newSoil
+        dataChanged = true
+      }
+    }
+    if (deviceStatus) {
+      const newUpdated = deviceStatus.last_active || ''
+      if (newUpdated !== sensorLatestCache.value.updated) {
+        sensorLatest.value.updated = newUpdated
+        sensorLatestCache.value.updated = newUpdated
+        dataChanged = true
+      }
+    }
+   if (dataChanged) {
+      (console.log('数据更新完成'))
     }
 
     // 标记初始加载完成
@@ -167,8 +215,8 @@ let refreshTimer = null
 
 onMounted(() => {
   fetchData()
-  // 每2秒自动刷新一次数据
-  refreshTimer = setInterval(fetchData, 2000)
+  // 每5秒自动刷新一次数据，确保及时获取最新数据
+  refreshTimer = setInterval(fetchData, 5000)
 })
 
 onUnmounted(() => {
@@ -183,59 +231,73 @@ onUnmounted(() => {
   <div class="dash">
     <header class="dash-head">
       <div>
-        <h2 class="dash-title">智慧农业监测 — 仪表盘</h2>
-        <p class="dash-sub">实时概览 · 数据来自后端API</p>
+        <span>farm situation</span>
+        <h1 class="dash-title">农场情况 — 仪表盘</h1>
         <div v-if="error" class="error-message">{{ error }}</div>
       </div>
       <div class="dash-actions">
-        <span class="pill">模式：实时</span>
         <button type="button" class="btn btn-ghost" @click="handleRefresh">
           刷新
         </button>
         <button type="button" class="btn btn-primary" @click="handleRefresh">同步云端</button>
-        <button type="button" class="btn btn-ghost">导出警告 CSV</button>
+        <button type="button" class="btn btn-ghost">导出告警 CSV</button>
       </div>
     </header>
 
     <!-- 第一行：核心指标 -->
     <section class="grid metrics" aria-label="最新传感器指标">
       <article class="proto-card metric proto-card--accent">
-        <span class="metric-label">温度</span>
-        <span class="metric-value">
-          <template v-if="!initialLoaded">加载中...</template>
-          <template v-else>{{ typeof sensorLatest.temperature === 'number' ? sensorLatest.temperature.toFixed(2) : '0.00' }}<small>°C</small></template>
-        </span>
-        <span class="metric-hint">适宜生长</span>
+        <div class="metric-content">
+          <div class="metric-text">
+            <span class="metric-label">温度</span>
+            <span class="metric-value">
+              <template v-if="!initialLoaded">加载中...</template>
+              <template v-else>{{ typeof sensorLatest.temperature === 'number' ? sensorLatest.temperature.toFixed(2) : '0.00' }}<small>°C</small></template>
+            </span>
+            <span class="metric-hint">适宜生长</span>
+          </div>
+          <div class="metric-icon">
+            <img src="/src/assets/温度.svg" alt="温度" class="icon-img" />
+          </div>
+        </div>
       </article>
       <article class="proto-card metric">
-        <span class="metric-label">空气湿度</span>
-        <span class="metric-value">
-          <template v-if="!initialLoaded">加载中...</template>
-          <template v-else>{{ typeof sensorLatest.humidity === 'number' ? sensorLatest.humidity.toFixed(2) : '0.00' }}<small>%</small></template>
-        </span>
-        <span class="metric-hint">略偏高</span>
+        <div class="metric-content">
+          <div class="metric-text">
+            <span class="metric-label">空气湿度</span>
+            <span class="metric-value">
+              <template v-if="!initialLoaded">加载中...</template>
+              <template v-else>{{ typeof sensorLatest.humidity === 'number' ? sensorLatest.humidity.toFixed(2) : '0.00' }}<small>%</small></template>
+            </span>
+            <span class="metric-hint">略偏高</span>
+          </div>
+          <div class="metric-icon">
+            <img src="/src/assets/湿度.svg" alt="湿度" class="icon-img" />
+          </div>
+        </div>
       </article>
       <article class="proto-card metric">
-        <span class="metric-label">pH</span>
-        <span class="metric-value">{{ sensorLatest.ph }}</span>
-        <span class="metric-hint">营养液</span>
-      </article>
-      <article class="proto-card metric">
-        <span class="metric-label">光照</span>
-        <span class="metric-value">
-          <template v-if="!initialLoaded">加载中...</template>
-          <template v-else>{{ typeof sensorLatest.light === 'number' ? sensorLatest.light.toFixed(2) : '0.00' }}<small> lux</small></template>
-        </span>
-        <span class="metric-hint">充足</span>
+        <div class="metric-content">
+          <div class="metric-text">
+            <span class="metric-label">光照</span>
+            <span class="metric-value">
+              <template v-if="!initialLoaded">加载中...</template>
+              <template v-else>{{ typeof sensorLatest.light === 'number' ? sensorLatest.light.toFixed(2) : '0.00' }}<small> lux</small></template>
+            </span>
+            <span class="metric-hint">充足</span>
+          </div>
+          <div class="metric-icon">
+            <img src="/src/assets/太阳.svg" alt="太阳" class="icon-img" />
+          </div>
+        </div>
       </article>
     </section>
 
-    <!-- 第二行：天气 + 土壤 -->
-    <section class="grid row-2" aria-label="环境与土壤">
+    <!-- 第二行：天气 -->
+    <section class="grid row-2" aria-label="外部天气">
       <article class="proto-card panel weather">
         <div class="panel-head">
-          <h3>外部天气（OpenWeather）</h3>
-          <span class="muted">演示 · 接入 API 后展示真实数据</span>
+          <h2>外部天气</h2>
         </div>
         <div class="weather-search">
           <label class="sr-only" for="city">城市</label>
@@ -257,44 +319,16 @@ onUnmounted(() => {
           </ul>
         </div>
       </article>
-
-      <article class="proto-card panel soil">
-        <div class="panel-head">
-          <h3>土壤 / 基质</h3>
-          <span class="tag tag-ok">正常</span>
-        </div>
-        <div class="soil-grid">
-          <div>
-            <span class="soil-label">含水率</span>
-            <span class="soil-val">
-              <template v-if="!initialLoaded">加载中...</template>
-              <template v-else>{{ typeof sensorLatest.soil === 'number' ? sensorLatest.soil.toFixed(2) : '0.00' }}%</template>
-            </span>
-          </div>
-          <div>
-            <span class="soil-label">电导率</span>
-            <span class="soil-val">1.12 <small>mS/cm</small></span>
-          </div>
-          <div>
-            <span class="soil-label">采集时间</span>
-            <span class="soil-val small">
-              <template v-if="loading">加载中...</template>
-              <template v-else>{{ sensorLatest.updated }}</template>
-            </span>
-          </div>
-        </div>
-        <p class="panel-note">接口就绪后映射字段：<code>soil_moisture</code>、<code>ec</code> 等。</p>
-      </article>
     </section>
 
-    <!-- 第三行：警告 + 历史表 -->
+    <!-- 第三行：告警 + 历史表 -->
     <section class="grid row-3">
       <article class="proto-card panel table-panel">
         <div class="panel-head">
-          <h3>警告记录</h3>
+          <h2>告警记录</h2>
         </div>
         <div class="table-wrap">
-          <table class="data-table">
+          <table v-if="alerts.length > 0" class="data-table">
             <thead>
               <tr>
                 <th>时间</th>
@@ -312,12 +346,16 @@ onUnmounted(() => {
               </tr>
             </tbody>
           </table>
+          <div v-else class="empty-state">
+            <img src="/src/assets/告警.svg" alt="暂无告警" class="empty-icon" />
+            <span class="empty-text">暂无告警</span>
+          </div>
         </div>
       </article>
 
       <article class="proto-card panel table-panel">
         <div class="panel-head">
-          <h3>历史记录（最近）</h3>
+          <h2>历史记录（最近）</h2>
         </div>
         <div class="table-wrap">
           <table class="data-table">
@@ -345,7 +383,7 @@ onUnmounted(() => {
     <!-- 第四行：趋势图 -->
     <article class="proto-card panel chart-panel" aria-label="温湿度趋势">
       <div class="panel-head">
-        <h3>历史趋势（24h 采样示意）</h3>
+        <h2>历史趋势（24h 采样示意）</h2>
         <div class="legend">
           <span class="dot dot-temp"></span> 温度 °C
           <span class="dot dot-hum"></span> 湿度 %
@@ -405,6 +443,7 @@ onUnmounted(() => {
 .dash {
   max-width: 1280px;
   margin: 0 auto;
+  padding: 0 0 0 2rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -418,18 +457,19 @@ onUnmounted(() => {
   gap: 1rem;
 }
 
-.dash-title {
-  font-size: 1.35rem;
-  font-weight: 800;
-  color: #0f5132;
-  margin: 0 0 0.25rem;
-  letter-spacing: 0.02em;
+.dash-head span {
+  font-size: .8rem;
+  font-weight: 400;
+  color: #333a;
+  padding: 0 .2rem;
 }
 
-.dash-sub {
-  margin: 0;
-  font-size: 0.88rem;
-  color: rgba(26, 46, 36, 0.65);
+.dash-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #333;
+  margin: 0 0 0.25rem;
+  letter-spacing: 0.02em;
 }
 
 .dash-actions {
@@ -437,16 +477,6 @@ onUnmounted(() => {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
-}
-
-
-.pill {
-  font-size: 0.78rem;
-  font-weight: 600;
-  padding: 0.35rem 0.65rem;
-  border-radius: 999px;
-  background: rgba(25, 135, 84, 0.12);
-  color: #146c43;
 }
 
 .btn {
@@ -468,10 +498,10 @@ onUnmounted(() => {
 }
 
 .btn-primary {
-  background: linear-gradient(180deg, #2d9d5f 0%, #198754 100%);
+  background: linear-gradient(180deg, #25c18f 0%, #1db882 100%);
   color: #fff;
   border-color: rgba(0, 0, 0, 0.06);
-  box-shadow: 0 2px 8px rgba(25, 135, 84, 0.35);
+  box-shadow: 0 2px 8px rgba(37, 193, 143, 0.35);
 }
 
 .btn-primary:hover {
@@ -496,46 +526,69 @@ onUnmounted(() => {
 }
 
 .metrics {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .metric {
   padding: 1.1rem 1.15rem;
+  position: relative;
+}
+
+.metric-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.metric-text {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  position: relative;
-  overflow: hidden;
 }
 
-.metric::after {
-  content: '';
-  position: absolute;
-  right: -20px;
-  top: -20px;
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(25, 135, 84, 0.12) 0%, transparent 70%);
-  pointer-events: none;
+.metric-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: float 3s ease-in-out infinite;
+}
+
+.icon-img {
+  width: 50px;
+  height: 50px;
+  opacity: 0.8;
+  object-fit: contain;
+  display: block;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .proto-card--accent {
-  background: linear-gradient(135deg, #ffffff 0%, #f0fff6 100%);
+  background: #ffffff;
 }
 
 .metric-label {
-  font-size: 0.78rem;
+  font-size: 0.9rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: rgba(26, 46, 36, 0.55);
+  color: rgba(0, 0, 0, 0.55);
 }
 
 .metric-value {
-  font-size: 1.65rem;
+  font-size: 1rem;
   font-weight: 800;
-  color: #0f5132;
+  color: #000000;
   line-height: 1.1;
 }
 
@@ -543,17 +596,17 @@ onUnmounted(() => {
   font-size: 0.55em;
   font-weight: 700;
   margin-left: 2px;
-  color: rgba(15, 81, 50, 0.65);
+  color: rgba(0, 0, 0, 0.65);
 }
 
 .metric-hint {
-  font-size: 0.82rem;
-  color: #198754;
+  font-size: 0.72rem;
+  color: #25c18f;
   font-weight: 600;
 }
 
 .row-2 {
-  grid-template-columns: 1.35fr 1fr;
+  grid-template-columns: 1fr;
 }
 
 .row-3 {
@@ -573,16 +626,16 @@ onUnmounted(() => {
   margin-bottom: 1rem;
 }
 
-.panel-head h3 {
+.panel-head h2 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.2rem;
   font-weight: 800;
-  color: #143d2e;
+  color: #000000;
 }
 
 .muted {
   font-size: 0.78rem;
-  color: rgba(26, 46, 36, 0.55);
+  color: rgba(0, 0, 0, 0.55);
 }
 
 .weather-search {
@@ -628,7 +681,7 @@ onUnmounted(() => {
 .weather-city {
   font-weight: 800;
   font-size: 1.05rem;
-  color: #1b4332;
+  color: #000000;
 }
 
 .weather-meta {
@@ -641,19 +694,19 @@ onUnmounted(() => {
 }
 
 .weather-meta li {
-  background: rgba(25, 135, 84, 0.06);
+  background: rgba(37, 193, 143, 0.06);
   border-radius: 10px;
   padding: 0.5rem 0.65rem;
   display: flex;
   flex-direction: column;
   gap: 2px;
   font-size: 0.72rem;
-  color: rgba(26, 46, 36, 0.6);
+  color: rgba(0, 0, 0, 0.6);
 }
 
 .weather-meta strong {
   font-size: 0.85rem;
-  color: #143d2e;
+  color: #000000;
 }
 
 .soil-grid {
@@ -665,14 +718,14 @@ onUnmounted(() => {
 .soil-label {
   display: block;
   font-size: 0.75rem;
-  color: rgba(26, 46, 36, 0.55);
+  color: rgba(0, 0, 0, 0.55);
   margin-bottom: 0.25rem;
 }
 
 .soil-val {
   font-size: 1.25rem;
   font-weight: 800;
-  color: #0f5132;
+  color: #000000;
 }
 
 .soil-val.small {
@@ -683,13 +736,13 @@ onUnmounted(() => {
 .soil-val small {
   font-size: 0.65em;
   font-weight: 700;
-  color: rgba(15, 81, 50, 0.6);
+  color: rgba(0, 0, 0, 0.6);
 }
 
 .panel-note {
   margin: 0.85rem 0 0;
   font-size: 0.75rem;
-  color: rgba(26, 46, 36, 0.5);
+  color: rgba(0, 0, 0, 0.5);
 }
 
 .panel-note code {
@@ -707,7 +760,7 @@ onUnmounted(() => {
 }
 
 .tag-ok {
-  background: rgba(25, 135, 84, 0.15);
+  background: rgba(37, 193, 143, 0.15);
   color: #146c43;
 }
 
@@ -838,5 +891,26 @@ onUnmounted(() => {
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  gap: 0.75rem;
+}
+
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  opacity: 0.6;
+}
+
+.empty-text {
+  font-size: 1rem;
+  color: rgba(0, 0, 0, 0.5);
+  font-weight: 500;
 }
 </style>

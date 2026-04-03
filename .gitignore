@@ -38,6 +38,8 @@ __screenshots__/
 # Vite
 *.timestamp-*-*.mjs
 
+.opencode/*
+
 # Sensor data
 backend/*.csv
 backend/README.md
