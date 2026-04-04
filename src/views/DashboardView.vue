@@ -428,7 +428,7 @@ onUnmounted(() => {
   </div>
 </template>
 
-<style scoped>
+<style >
 .sr-only {
   position: absolute;
   width: 1px;

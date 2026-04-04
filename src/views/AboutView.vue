@@ -24,7 +24,7 @@
   </div>
 </template>
 
-<style scoped>
+<style >
 .about {
   max-width: 1100px;
   margin: 0 auto;

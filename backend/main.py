@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 import csv
-
+from fastapi.middleware.cors import CORSMiddleware
 
 # 配置参数
 CSV_PATH = os.environ.get("SENSOR_CSV_PATH", os.path.join(".", "sensor_data.csv"))  # 传感器数据CSV文件路径
@@ -248,7 +248,7 @@ class TaskUpdateRequest(BaseModel):
 
 # 创建FastAPI应用实例
 app = FastAPI(title="Smart Farm Backend (CSV-based prototype)")
-
+from api.ai import router as ai_router
 # 添加CORS中间件，允许跨域请求
 app.add_middleware(
     CORSMiddleware,
@@ -257,6 +257,9 @@ app.add_middleware(
     allow_methods=["*"],  # 允许所有HTTP方法
     allow_headers=["*"],  # 允许所有HTTP头
 )
+
+app.include_router(ai_router, prefix="/api/v1/ai")
+
 
 
 # 全局变量

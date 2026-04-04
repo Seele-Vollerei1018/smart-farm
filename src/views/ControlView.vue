@@ -224,7 +224,7 @@ onMounted(() => {
   </div>
 </template>
 
-<style scoped>
+<style >
 .ctrl {
   max-width: 1280px;
   margin: 0 auto;

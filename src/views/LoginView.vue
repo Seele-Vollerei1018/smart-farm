@@ -106,7 +106,7 @@ function cancelRegister() {
   </main>
 </template>
 
-<style scoped>
+<style >
 .login-page {
   min-height: 100vh;
   display: grid;
