@@ -6,13 +6,12 @@ import { fetchWeatherData, cityCodeMap } from '../api/weather'
 /** 状态管理 */
 const cityQuery = ref('北京')
 const weather = ref({
-  city: '北京',
-  temp: 18,
-  feels: 16,
-  desc: '多云',
-  humidity: 62,
-  wind: '东北 3 级',
-  updated: '2025-03-25 14:32',
+  city: '...',
+  temp: 0,
+  desc: '...',
+  humidity: 0,
+  wind: '...',
+  updated: '...',
 })
 const weatherLoading = ref(false)
 const weatherError = ref('')
@@ -251,7 +250,6 @@ onUnmounted(() => {
         <button type="button" class="btn btn-primary" @click="handleRefresh">
           刷新
         </button>
-        <button type="button" class="btn btn-ghost">导出告警 CSV</button>
       </div>
     </header>
 
@@ -324,7 +322,7 @@ onUnmounted(() => {
             <span class="weather-temp">{{ weather.temp }}°</span>
             <div>
               <div class="weather-city">{{ weather.city }}</div>
-              <div class="muted">{{ weather.desc }} · 体感 {{ weather.feels }}°C</div>
+              <div class="muted">{{ weather.desc }}</div>
             </div>
           </div>
           <ul class="weather-meta">
@@ -522,17 +520,6 @@ onUnmounted(() => {
 
 .btn-primary:hover {
   filter: brightness(1.05);
-}
-
-.btn-ghost {
-  background: #fff;
-  border-color: rgba(15, 81, 50, 0.15);
-  color: #1b4332;
-}
-
-.btn-ghost:hover {
-  background: #f8fffa;
-  border-color: rgba(25, 135, 84, 0.35);
 }
 
 .grid {

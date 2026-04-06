@@ -52,6 +52,7 @@ import VideoSection from '@/components/learning/VideoSection.vue'
 import AIBox from '@/components/learning/AIBox.vue'
 import { computed, nextTick, ref, onMounted, watch } from 'vue'
 import LevelTabs from '../components/learning/LevelTabs.vue'
+import { sendChatMessage } from '../api/ai'
 import chanziImg from '@/assets/tools/chanzi.png'
 import chutouImg from '@/assets/tools/chutou.png'
 import liandaoImg from '@/assets/tools/liandao.png'
@@ -776,18 +777,11 @@ function saveHistory() {
 
 async function callAI(question) {
   try {
-    const res = await fetch('http://localhost:8001/api/v1/ai/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: question })
-    })
-
-    const data = await res.json()
-    if (data.code === 200) return data.data
-    return 'AI返回异常'
+    const reply = await sendChatMessage(question)
+    return reply
   } catch (err) {
     console.error(err)
-    return '❌ AI请求失败'
+    return 'AI请求失败'
   }
 }
 

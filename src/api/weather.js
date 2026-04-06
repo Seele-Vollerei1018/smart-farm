@@ -32,7 +32,6 @@ export async function fetchWeatherData(cityName) {
       return {
         city: weatherData.city,
         temp: parseInt(weatherData.temperature),
-        feels: parseInt(weatherData.temperature), // 高德API没有体感温度，使用实际温度代替
         desc: weatherData.weather,
         humidity: parseInt(weatherData.humidity),
         wind: `${weatherData.winddirection} ${weatherData.windpower}级`,
