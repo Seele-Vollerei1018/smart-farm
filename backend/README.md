@@ -22,7 +22,7 @@ pip install -r requirements.txt
 ## 启动服务
 
 ```bash
-uvicorn main:app --host 0.0.0.0 --port 8000
+uvicorn main:app --host 0.0.0.0 --port 8001
 ```
 
 后端默认会在没有树莓派/CSV 输入的情况下自动模拟传感器数据，确保页面接口可用。

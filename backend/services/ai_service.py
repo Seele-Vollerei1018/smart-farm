@@ -57,7 +57,10 @@ def call_qwen(question: str) -> str:
         raise RuntimeError(f"调用通义接口失败：{e}")
 
     if res.status_code != 200:
-        raise RuntimeError(f"通义接口异常 status={res.status_code}：{res.text}")
+        if res.status_code == 401:
+            raise RuntimeError("API Key 无效，请检查 .env 文件中的 AI_API_KEY 配置")
+        else:
+            raise RuntimeError(f"通义接口异常 status={res.status_code}：{res.text}")
 
     try:
         data = res.json()

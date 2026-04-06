@@ -776,7 +776,7 @@ function saveHistory() {
 
 async function callAI(question) {
   try {
-    const res = await fetch('http://localhost:8000/api/v1/ai/chat', {
+    const res = await fetch('http://localhost:8001/api/v1/ai/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: question })

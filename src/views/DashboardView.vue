@@ -1,11 +1,12 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { fetchDeviceStatus, fetchHistory, fetchRuleLogs } from '../api/client'
+import { fetchWeatherData, cityCodeMap } from '../api/weather'
 
 /** 状态管理 */
-const cityQuery = ref('Beijing')
+const cityQuery = ref('北京')
 const weather = ref({
-  city: 'Beijing',
+  city: '北京',
   temp: 18,
   feels: 16,
   desc: '多云',
@@ -13,6 +14,8 @@ const weather = ref({
   wind: '东北 3 级',
   updated: '2025-03-25 14:32',
 })
+const weatherLoading = ref(false)
+const weatherError = ref('')
 
 const sensorLatest = ref({
   temperature: 0,
@@ -198,11 +201,24 @@ async function fetchData() {
   }
 }
 
-function mockSearchWeather() {
-  weather.value = {
-    ...weather.value,
-    city: cityQuery.value.trim() || weather.value.city,
-    updated: new Date().toLocaleString('zh-CN', { hour12: false }),
+async function mockSearchWeather() {
+  const cityName = cityQuery.value.trim()
+  if (!cityName) {
+    weatherError.value = '请输入城市名称'
+    return
+  }
+
+  weatherLoading.value = true
+  weatherError.value = ''
+
+  try {
+    const weatherData = await fetchWeatherData(cityName)
+    weather.value = weatherData
+  } catch (err) {
+    weatherError.value = err.message
+    console.error('天气API调用错误:', err)
+  } finally {
+    weatherLoading.value = false
   }
 }
 
@@ -211,19 +227,15 @@ function handleRefresh() {
 }
 
 /** 生命周期 */
-let refreshTimer = null
-
-onMounted(() => {
+onMounted(async () => {
   fetchData()
-  // 每5秒自动刷新一次数据，确保及时获取最新数据
-  refreshTimer = setInterval(fetchData, 5000)
+  // 首次加载时请求广州的天气
+  cityQuery.value = '广州'
+  await mockSearchWeather()
 })
 
 onUnmounted(() => {
-  // 组件卸载时清除定时器
-  if (refreshTimer) {
-    clearInterval(refreshTimer)
-  }
+  // 组件卸载时的清理工作
 })
 </script>
 
@@ -300,9 +312,13 @@ onUnmounted(() => {
         </div>
         <div class="weather-search">
           <label class="sr-only" for="city">城市</label>
-          <input id="city" v-model="cityQuery" type="text" class="input" placeholder="城市英文名，如 Beijing" />
-          <button type="button" class="btn btn-primary btn-sm" @click="mockSearchWeather">查询</button>
+          <input id="city" v-model="cityQuery" type="text" class="input" placeholder="城市中文名，如 北京" />
+          <button type="button" class="btn btn-primary btn-sm" @click="mockSearchWeather" :disabled="weatherLoading">
+            <template v-if="weatherLoading">查询中...</template>
+            <template v-else>查询</template>
+          </button>
         </div>
+        <div v-if="weatherError" class="error-message">{{ weatherError }}</div>
         <div class="weather-body">
           <div class="weather-main">
             <span class="weather-temp">{{ weather.temp }}°</span>
