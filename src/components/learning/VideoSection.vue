@@ -7,7 +7,7 @@
       <button class="refresh-btn" @click="refreshVideos">换一批</button>
     </div>
 
-    <!-- 视频列表（固定6个） -->
+    <!-- 视频列表 -->
     <div class="video-grid">
       <div
         v-for="video in visibleVideos"
@@ -27,17 +27,6 @@
       </div>
     </div>
 
-    <!-- 播放弹窗 -->
-    <div v-if="currentBvid" class="video-modal" @click.self="closeVideo">
-      <div class="video-player">
-        <iframe
-          :src="`https://player.bilibili.com/player.html?bvid=${currentBvid}`"
-          frameborder="0"
-          allowfullscreen
-        ></iframe>
-      </div>
-    </div>
-
   </div>
 </template>
 
@@ -46,45 +35,72 @@ import { ref, onMounted } from 'vue'
 
 const allVideos = ref([])
 const visibleVideos = ref([])
-const currentBvid = ref(null)
 
-// ===== 视频池（稳定）=====
+// ===== 视频数据 =====
+// ===== 视频数据（本地稳定版）=====
 const generateVideos = () => {
-  const titles = [
-    '智慧农业系统解析',
-    '草莓种植全过程',
-    '水稻是怎么种出来的',
-    '无人机如何喷洒农药',
-    '现代农业灌溉技术',
-    '大棚种植技巧',
-    '农场自动化设备',
-    '农作物生长周期讲解',
-    '农业机械使用指南',
-    '农田管理技巧'
+  const videoSource = [
+    {
+      bvid: 'BV16A411N7Qk',
+      title: '栽培一株好苗，为阳台菜园做好准备',
+      cover: new URL('@/assets/bilibili/1.png', import.meta.url).href
+    },
+    {
+      bvid: 'BV1SZ4y1s7x7', // ✅ 修正（原来错）
+      title: '发芽！植物一生的开始',
+      cover: new URL('@/assets/bilibili/2.png', import.meta.url).href
+    },
+    {
+      bvid: 'BV1VP4y1R72v', // ✅ 修正
+      title: '从零开始种番茄',
+      cover: new URL('@/assets/bilibili/3.png', import.meta.url).href
+    },
+    {
+      bvid: 'BV1XL411a7Jk',
+      title: '生菜，从播种到收获全过程',
+      cover: new URL('@/assets/bilibili/4.png', import.meta.url).href
+    },
+    {
+      bvid: 'BV1aZXMYDEnJ', // ✅ 修正（完全错的）
+      title: '不可思议的种子生长过程',
+      cover: new URL('@/assets/bilibili/5.png', import.meta.url).href
+    },
+    {
+      bvid: 'BV1yUQgYrEfQ', // ✅ 修正
+      title: '胡萝卜切下来会发生什么？',
+      cover: new URL('@/assets/bilibili/6.png', import.meta.url).href
+    },
+    {
+      bvid: 'BV1vc41167yM',
+      title: '中国饭碗（农业纪录）',
+      cover: new URL('@/assets/bilibili/7.png', import.meta.url).href
+    },
+    {
+      bvid: 'BV1U3K7z8EwE', // ✅ 修正
+      title: '相信土地的力量（农业主题）',
+      cover: new URL('@/assets/bilibili/8.png', import.meta.url).href
+    }
   ]
 
-  return titles.map((title, i) => ({
+  return videoSource.map((item, i) => ({
     id: i,
-    bvid: 'BV1xK4y1C7yH', // 可播放
-    title,
-    author: '农业频道',
-    cover: `https://picsum.photos/400/300?random=${i + Math.random()}`
+    ...item,
+    author: '农业科普'
   }))
 }
 
-// ===== 换一批（核心）=====
+// ===== 换一批 =====
 const refreshVideos = () => {
   allVideos.value = generateVideos().sort(() => Math.random() - 0.5)
   visibleVideos.value = allVideos.value.slice(0, 6)
 }
 
-// ===== 播放 =====
+// ===== 点击跳转B站 =====
 const playVideo = (video) => {
-  currentBvid.value = video.bvid
-}
-
-const closeVideo = () => {
-  currentBvid.value = null
+  window.open(
+    `https://www.bilibili.com/video/${video.bvid}`,
+    '_blank'
+  )
 }
 
 // ===== 初始化 =====
@@ -116,9 +132,8 @@ onMounted(() => {
 
 .section-header h1 {
   margin: 0;
-  font-size: 20px;
-  font-weight: 800;
   font-size: 1.4rem;
+  font-weight: 800;
 }
 
 .refresh-btn {
@@ -194,33 +209,7 @@ onMounted(() => {
   color: #888;
 }
 
-/* ================== 播放弹窗 ================== */
-
-.video-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-}
-
-.video-player {
-  width: 80%;
-  max-width: 900px;
-  aspect-ratio: 16/9;
-}
-
-.video-player iframe {
-  width: 100%;
-  height: 100%;
-}
-
-/* ================== 手机 ================== */
+/* ================== 手机适配 ================== */
 
 @media (max-width: 900px) {
   .video-grid {
