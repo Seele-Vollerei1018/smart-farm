@@ -484,8 +484,8 @@
   </div>
 
   <!-- ✅ 详情区（关键！） -->
-  <transition name="fade-slide">
-    <div v-if="currentTool" class="tool-detail">
+  <transition name="fade-slide" mode="out-in">
+    <div v-if="currentTool" class="tool-detail" :key="currentTool.id">
       <div class="tool-detail-left">
         <div class="tool-main-image-box">
           <img :src="currentTool.image" class="tool-main-image" loading="lazy" />
@@ -585,6 +585,40 @@ const selectTool = (item, event) => {
   }
 }
 
+// 监听currentPage或level变化，自动选择对应分类的第一个工具
+watch([() => props.currentPage, () => props.level], ([newPage, newLevel]) => {
+  let firstTool = null
+
+  // 根据当前页面和级别选择第一个工具
+  if (newLevel === 'primary') {
+    if (newPage === 0 && props.filteredTools.length > 0) {
+      firstTool = props.filteredTools[0]
+    } else if (newPage === 1 && props.animals.length > 0) {
+      firstTool = props.animals[0]
+    } else if (newPage === 2 && props.plants.length > 0) {
+      firstTool = props.plants[0]
+    }
+  } else if (newLevel === 'middle') {
+    if (newPage === 0 && props.seasons.length > 0) {
+      firstTool = props.seasons[0]
+    } else if (newPage === 1 && props.solarTerms.length > 0) {
+      firstTool = props.solarTerms[0]
+    } else if (newPage === 2 && props.regions.length > 0) {
+      firstTool = props.regions[0]
+    }
+  } else {
+    // 高级级别
+    if (props.advancedItems.length > 0) {
+      firstTool = props.advancedItems[0]
+    }
+  }
+
+  // 如果找到第一个工具，触发selectTool事件
+  if (firstTool) {
+    emit('selectTool', firstTool)
+  }
+}, { immediate: true })
+
 
 
 
@@ -604,7 +638,6 @@ const selectTool = (item, event) => {
   position: relative;
   z-index: 1;
 }
-
 
 .tool-section.primary-container {
   position: relative;
@@ -685,7 +718,6 @@ const selectTool = (item, event) => {
 
 .tool-card.selected {
   border-color: #25c18f;
-
 }
 
 .tool-image-wrap {
@@ -720,10 +752,20 @@ const selectTool = (item, event) => {
 }
 
 .tool-detail {
-  display: grid;
-  grid-template-columns: 340px 1fr;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
   gap: 26px;
-  align-items: start;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+@media (max-width: 1200px) {
+  .tool-detail {
+    flex-direction: column;
+    align-items: center;
+  }
 }
 
 .tool-detail-left,
@@ -931,10 +973,6 @@ const selectTool = (item, event) => {
 }
 
 @media (max-width: 1200px) {
-  .tool-detail {
-    grid-template-columns: 1fr;
-  }
-
   .nav-btn {
     top: auto;
     bottom: 64px;

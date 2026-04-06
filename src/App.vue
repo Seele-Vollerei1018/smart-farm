@@ -350,7 +350,7 @@ init()
           </button>
         </div>
         <RouterView />
-        
+
         <!-- 回到顶部按钮 -->
         <button
           v-if="showBackToTop"
@@ -567,6 +567,7 @@ init()
   border: none;
   border-radius: 8px;
   color: var(--sf-green-mid);
+  background-color: #fff;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
