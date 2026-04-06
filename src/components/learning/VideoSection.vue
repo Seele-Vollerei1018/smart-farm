@@ -3,8 +3,8 @@
 
     <!-- 标题 -->
     <div class="section-header">
-      <h2>🎬 农业视频推荐</h2>
-      <button class="refresh-btn" @click="refreshVideos">🔄 换一批</button>
+      <h1>🎬 农业视频推荐</h1>
+      <button class="refresh-btn" @click="refreshVideos">换一批</button>
     </div>
 
     <!-- 视频列表（固定6个） -->
@@ -16,7 +16,7 @@
         @click="playVideo(video)"
       >
         <div class="video-cover">
-          <img :src="video.cover" />
+          <img :src="video.cover" loading="lazy" />
           <div class="play-btn">▶</div>
         </div>
 
@@ -99,7 +99,6 @@ onMounted(() => {
 
 .video-section {
   margin: 0;
-  margin-bottom: 140px;
   padding: 16px;
   background: #ffffff;
   border-radius: 16px;
@@ -109,19 +108,21 @@ onMounted(() => {
 /* ================== 标题 ================== */
 
 .section-header {
-  display: block;
+  display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
 }
 
-.section-header h2 {
+.section-header h1 {
   margin: 0;
   font-size: 20px;
+  font-weight: 800;
+  font-size: 1.4rem;
 }
 
 .refresh-btn {
-  background: #4caf50;
+  background: #25c18f;
   color: #fff;
   border: none;
   padding: 6px 12px;

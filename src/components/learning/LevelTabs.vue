@@ -28,7 +28,7 @@ const levels = [
 .level-tabs {
   display: flex;
   gap: 12px;
-  padding: 10px 20px;
+  padding: 5px;
 }
 
 .tab {
@@ -36,10 +36,11 @@ const levels = [
   border-radius: 20px;
   background: #f2f5f3;
   cursor: pointer;
+  border: 1px solid #3333;
 }
 
 .tab.active {
-  background: #8BA888;
+  background: #25c18f;
   color: white;
 }
 </style>

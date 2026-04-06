@@ -228,7 +228,7 @@ onMounted(() => {
 .ctrl {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 0 0 0 2rem;
+  padding: 0 0 0 1rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -242,7 +242,7 @@ onMounted(() => {
   margin: 0;
 }
 .ctrl-head span {
-  font-size: 。8rem;
+  font-size: .8rem;
   font-weight: 400;
   color: #333a;
   margin: 0;

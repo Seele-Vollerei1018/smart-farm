@@ -236,10 +236,9 @@ onUnmounted(() => {
         <div v-if="error" class="error-message">{{ error }}</div>
       </div>
       <div class="dash-actions">
-        <button type="button" class="btn btn-ghost" @click="handleRefresh">
+        <button type="button" class="btn btn-primary" @click="handleRefresh">
           刷新
         </button>
-        <button type="button" class="btn btn-primary" @click="handleRefresh">同步云端</button>
         <button type="button" class="btn btn-ghost">导出告警 CSV</button>
       </div>
     </header>
@@ -257,7 +256,7 @@ onUnmounted(() => {
             <span class="metric-hint">适宜生长</span>
           </div>
           <div class="metric-icon">
-            <img src="/src/assets/温度.svg" alt="温度" class="icon-img" />
+            <img src="/src/assets/温度.svg" alt="温度" class="icon-img" loading="lazy" />
           </div>
         </div>
       </article>
@@ -272,7 +271,7 @@ onUnmounted(() => {
             <span class="metric-hint">略偏高</span>
           </div>
           <div class="metric-icon">
-            <img src="/src/assets/湿度.svg" alt="湿度" class="icon-img" />
+            <img src="/src/assets/湿度.svg" alt="湿度" class="icon-img" loading="lazy" />
           </div>
         </div>
       </article>
@@ -287,7 +286,7 @@ onUnmounted(() => {
             <span class="metric-hint">充足</span>
           </div>
           <div class="metric-icon">
-            <img src="/src/assets/太阳.svg" alt="太阳" class="icon-img" />
+            <img src="/src/assets/太阳.svg" alt="太阳" class="icon-img" loading="lazy" />
           </div>
         </div>
       </article>
@@ -347,7 +346,7 @@ onUnmounted(() => {
             </tbody>
           </table>
           <div v-else class="empty-state">
-            <img src="/src/assets/告警.svg" alt="暂无告警" class="empty-icon" />
+            <img src="/src/assets/告警.svg" alt="暂无告警" class="empty-icon" loading="lazy" />
             <span class="empty-text">暂无告警</span>
           </div>
         </div>
@@ -443,7 +442,7 @@ onUnmounted(() => {
 .dash {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 0 0 0 2rem;
+  padding: 0 0 0 1rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -502,12 +501,12 @@ onUnmounted(() => {
   color: #fff;
   border-color: rgba(0, 0, 0, 0.06);
   box-shadow: 0 2px 8px rgba(37, 193, 143, 0.35);
+  margin: 0;
 }
 
 .btn-primary:hover {
   filter: brightness(1.05);
 }
-
 
 .btn-ghost {
   background: #fff;

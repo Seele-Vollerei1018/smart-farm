@@ -11,39 +11,23 @@
       </div>
 
       <div class="tool-scroll-shell">
-        <button
-          class="inner-scroll-btn inner-left"
-          type="button"
-          @click.stop="scrollLeft"
-        >
-          ‹
-        </button>
-
         <div class="tool-scroll-viewport">
-          <div class="tool-scroll" ref="toolScrollRef">
+          <div class="tool-scroll" ref="toolScrollRef" @wheel="handleWheel">
             <div
               v-for="item in filteredTools"
               :key="item.id"
               class="tool-card"
               :class="{ selected: currentTool?.id === item.id }"
-              @click="$emit('selectTool', item)"
+              @click="selectTool(item, $event)"
             >
               <div class="tool-image-wrap">
-                <img :src="item.image" :alt="item.name" class="tool-image" />
+                <img :src="item.image" :alt="item.name" class="tool-image" loading="lazy" />
               </div>
               <div class="tool-name">{{ item.name }}</div>
               <div class="tool-tag">{{ item.tag }}</div>
             </div>
           </div>
         </div>
-
-        <button
-          class="inner-scroll-btn inner-right"
-          type="button"
-          @click.stop="scrollRight"
-        >
-          ›
-        </button>
       </div>
 
       <transition name="fade-slide" mode="out-in">
@@ -54,6 +38,7 @@
                 :src="currentTool.image"
                 :alt="currentTool.name"
                 class="tool-main-image"
+                loading="lazy"
               />
             </div>
           </div>
@@ -105,39 +90,23 @@
       </div>
 
       <div class="tool-scroll-shell">
-        <button
-          class="inner-scroll-btn inner-left"
-          type="button"
-          @click.stop="scrollLeft"
-        >
-          ‹
-        </button>
-
         <div class="tool-scroll-viewport">
-          <div class="tool-scroll" ref="animalScrollRef">
+          <div class="tool-scroll" ref="animalScrollRef" @wheel="handleWheel">
             <div
               v-for="item in animals"
               :key="item.id"
               class="tool-card"
               :class="{ selected: currentTool?.id === item.id }"
-              @click="$emit('selectTool', item)"
+              @click="selectTool(item, $event)"
             >
               <div class="tool-image-wrap">
-                <img :src="item.image" :alt="item.name" class="tool-image" />
+                <img :src="item.image" :alt="item.name" class="tool-image" loading="lazy" />
               </div>
               <div class="tool-name">{{ item.name }}</div>
               <div class="tool-tag">{{ item.tag }}</div>
             </div>
           </div>
         </div>
-
-        <button
-          class="inner-scroll-btn inner-right"
-          type="button"
-          @click.stop="scrollRight"
-        >
-          ›
-        </button>
       </div>
 
       <transition name="fade-slide" mode="out-in">
@@ -148,6 +117,7 @@
                 :src="currentTool.image"
                 :alt="currentTool.name"
                 class="tool-main-image"
+                loading="lazy"
               />
             </div>
           </div>
@@ -188,39 +158,23 @@
       </div>
 
       <div class="tool-scroll-shell">
-        <button
-          class="inner-scroll-btn inner-left"
-          type="button"
-          @click.stop="scrollLeft"
-        >
-          ‹
-        </button>
-
         <div class="tool-scroll-viewport">
-          <div class="tool-scroll" ref="plantScrollRef">
+          <div class="tool-scroll" ref="plantScrollRef" @wheel="handleWheel">
             <div
               v-for="item in plants"
               :key="item.id"
               class="tool-card"
               :class="{ selected: currentTool?.id === item.id }"
-              @click="$emit('selectTool', item)"
+              @click="selectTool(item, $event)"
             >
               <div class="tool-image-wrap">
-                <img :src="item.image" :alt="item.name" class="tool-image" />
+                <img :src="item.image" :alt="item.name" class="tool-image" loading="lazy" />
               </div>
               <div class="tool-name">{{ item.name }}</div>
               <div class="tool-tag">{{ item.tag }}</div>
             </div>
           </div>
         </div>
-
-        <button
-          class="inner-scroll-btn inner-right"
-          type="button"
-          @click.stop="scrollRight"
-        >
-          ›
-        </button>
       </div>
 
       <transition name="fade-slide" mode="out-in">
@@ -231,6 +185,7 @@
                 :src="currentTool.image"
                 :alt="currentTool.name"
                 class="tool-main-image"
+                loading="lazy"
               />
             </div>
           </div>
@@ -304,39 +259,23 @@
       </div>
 
       <div class="tool-scroll-shell">
-        <button
-          class="inner-scroll-btn inner-left"
-          type="button"
-          @click.stop="scrollLeft"
-        >
-          ‹
-        </button>
-
         <div class="tool-scroll-viewport">
-          <div class="tool-scroll" ref="middleScrollRef">
+          <div class="tool-scroll" ref="middleScrollRef" @wheel="handleWheel">
             <div
               v-for="item in seasons"
               :key="item.id"
               class="tool-card"
               :class="{ selected: currentTool?.id === item.id }"
-              @click="$emit('selectTool', item)"
+              @click="selectTool(item, $event)"
             >
               <div class="tool-image-wrap">
-                <img :src="item.image" :alt="item.name" class="tool-image" />
+                <img :src="item.image" :alt="item.name" class="tool-image" loading="lazy" />
               </div>
               <div class="tool-name">{{ item.name }}</div>
               <div class="tool-tag">{{ item.tag }}</div>
             </div>
           </div>
         </div>
-
-        <button
-          class="inner-scroll-btn inner-right"
-          type="button"
-          @click.stop="scrollRight"
-        >
-          ›
-        </button>
       </div>
 
       <transition name="fade-slide" mode="out-in">
@@ -379,39 +318,23 @@
       </div>
 
       <div class="tool-scroll-shell">
-        <button
-          class="inner-scroll-btn inner-left"
-          type="button"
-          @click.stop="scrollLeft"
-        >
-          ‹
-        </button>
-
         <div class="tool-scroll-viewport">
-          <div class="tool-scroll" ref="cultureScrollRef">
+          <div class="tool-scroll" ref="cultureScrollRef" @wheel="handleWheel">
             <div
               v-for="item in solarTerms"
               :key="item.id"
               class="tool-card"
               :class="{ selected: currentTool?.id === item.id }"
-              @click="$emit('selectTool', item)"
+              @click="selectTool(item, $event)"
             >
               <div class="tool-image-wrap">
-                <img :src="item.image" :alt="item.name" class="tool-image" />
+                <img :src="item.image" :alt="item.name" class="tool-image" loading="lazy" />
               </div>
               <div class="tool-name">{{ item.name }}</div>
               <div class="tool-tag">{{ item.tag }}</div>
             </div>
           </div>
         </div>
-
-        <button
-          class="inner-scroll-btn inner-right"
-          type="button"
-          @click.stop="scrollRight"
-        >
-          ›
-        </button>
       </div>
 
       <transition name="fade-slide" mode="out-in">
@@ -454,39 +377,23 @@
       </div>
 
       <div class="tool-scroll-shell">
-        <button
-          class="inner-scroll-btn inner-left"
-          type="button"
-          @click.stop="scrollLeft"
-        >
-          ‹
-        </button>
-
         <div class="tool-scroll-viewport">
-          <div class="tool-scroll" ref="regionScrollRef">
+          <div class="tool-scroll" ref="regionScrollRef" @wheel="handleWheel">
             <div
               v-for="item in regions"
               :key="item.id"
               class="tool-card"
               :class="{ selected: currentTool?.id === item.id }"
-              @click="$emit('selectTool', item)"
+              @click="selectTool(item, $event)"
             >
               <div class="tool-image-wrap">
-                <img :src="item.image" :alt="item.name" class="tool-image" />
+                <img :src="item.image" :alt="item.name" class="tool-image" loading="lazy" />
               </div>
               <div class="tool-name">{{ item.name }}</div>
               <div class="tool-tag">{{ item.tag }}</div>
             </div>
           </div>
         </div>
-
-        <button
-          class="inner-scroll-btn inner-right"
-          type="button"
-          @click.stop="scrollRight"
-        >
-          ›
-        </button>
       </div>
 
       <transition name="fade-slide" mode="out-in">
@@ -557,10 +464,8 @@
   </div>
 
   <div class="tool-scroll-shell">
-    <button class="inner-scroll-btn inner-left" @click.stop="scrollLeft">‹</button>
-
     <div class="tool-scroll-viewport">
-      <div class="tool-scroll" ref="advancedScrollRef">
+      <div class="tool-scroll" ref="advancedScrollRef" @wheel="handleWheel">
         <div
           v-for="item in advancedItems"
           :key="item.id"
@@ -569,15 +474,13 @@
           @click="$emit('selectTool', item)"
         >
           <div class="tool-image-wrap">
-            <img :src="item.image" class="tool-image" />
+            <img :src="item.image" class="tool-image" loading="lazy" />
           </div>
           <div class="tool-name">{{ item.name }}</div>
           <div class="tool-tag">{{ item.tag }}</div>
         </div>
       </div>
     </div>
-
-    <button class="inner-scroll-btn inner-right" @click.stop="scrollRight">›</button>
   </div>
 
   <!-- ✅ 详情区（关键！） -->
@@ -585,7 +488,7 @@
     <div v-if="currentTool" class="tool-detail">
       <div class="tool-detail-left">
         <div class="tool-main-image-box">
-          <img :src="currentTool.image" class="tool-main-image" />
+          <img :src="currentTool.image" class="tool-main-image" loading="lazy" />
         </div>
       </div>
 
@@ -625,7 +528,7 @@ const props = defineProps({
   seasons: { type: Array, default: () => [] },
   solarTerms: { type: Array, default: () => [] },
   regions: { type: Array, default: () => [] },
-  
+
   currentTool: { type: Object, default: null },
   showDetail: { type: Boolean, default: false },
   advancedItems: { type: Array, default: () => [] },
@@ -648,33 +551,39 @@ const regionScrollRef = ref(null)
 const highTechScrollRef = ref(null)
 const highEcoScrollRef = ref(null)
 const advancedScrollRef = ref(null)
-const scrollLeft = () => {
-  let el = null
 
-  if (props.level === 'advanced') {
-    el = advancedScrollRef.value
-  } else {
-    el = document.querySelector('.category-page .tool-scroll')
-  }
-
-  if (!el) return
-  el.scrollLeft -= 320
-}
-
-const scrollRight = () => {
-  let el = null
-
-  if (props.level === 'advanced') {
-    el = advancedScrollRef.value
-  } else {
-    el = document.querySelector('.category-page .tool-scroll')
-  }
-
-  if (!el) return
-  el.scrollLeft += 320
-}
 
 const currentHigh = ref(null)
+
+const handleWheel = (event) => {
+  event.preventDefault()
+  const delta = event.deltaY
+  event.currentTarget.scrollLeft += delta
+}
+
+const selectTool = (item, event) => {
+  // 触发 selectTool 事件
+  emit('selectTool', item)
+
+  // 滚动点击的卡片到最前面
+  const cardElement = event.currentTarget
+  const scrollContainer = cardElement.closest('.tool-scroll')
+
+  if (scrollContainer) {
+    // 计算卡片相对于滚动容器的位置
+    const cardRect = cardElement.getBoundingClientRect()
+    const containerRect = scrollContainer.getBoundingClientRect()
+
+    // 计算滚动距离，使卡片移动到容器左侧
+    const scrollLeft = scrollContainer.scrollLeft + (cardRect.left - containerRect.left) - 20
+
+    // 平滑滚动
+    scrollContainer.scrollTo({
+      left: scrollLeft,
+      behavior: 'smooth'
+    })
+  }
+}
 
 
 
@@ -682,64 +591,15 @@ const currentHigh = ref(null)
 </script>
 
 <style scoped>
-.inner-scroll-btn {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+/* ====== 滚动区域样式 ====== */
 
-  z-index: 9999 !important;
-  pointer-events: auto !important;
-
-  width: 44px;
-  height: 44px;
-  border: none;
-  border-radius: 50%;
-
-  background: rgba(255, 255, 255, 0.98);
-  color: #4caf50;
-  font-size: 26px;
-
-  cursor: pointer;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* 左按钮 */
-.inner-left {
-  left: 10px;
-}
-
-/* 右按钮 */
-.inner-right {
-  right: 10px;
-}
-
-/* ====== 关键修复 ====== */
-
-/* 不裁剪按钮 */
-.tool-scroll-viewport {
-  overflow: visible !important;
-  
-  pointer-events: auto;
-}
-
-/* 滚动层降级 */
+/* 滚动层 */
 .tool-scroll {
   position: relative;
   z-index: 1;
 }
 
-/* 按钮抬到最上层 */
-.inner-scroll-btn {
-  z-index: 9999 !important;
-  pointer-events: auto !important;
-  position: absolute;
-}
-
-/* 防止卡片盖住按钮 */
+/* 防止卡片盖住其他元素 */
 .tool-card {
   position: relative;
   z-index: 1;
@@ -752,7 +612,7 @@ const currentHigh = ref(null)
   overflow: visible !important;
   position: relative;
   z-index: 10;
-  
+
 }
 
 .category-page {
@@ -764,7 +624,7 @@ const currentHigh = ref(null)
 .section-title-row {
   display: flex;
   align-items: center;
-  
+
 }
 
 .section-title {
@@ -776,16 +636,13 @@ const currentHigh = ref(null)
 
 .tool-scroll-shell {
   position: relative;
-  
-
-  padding-left: 62px;
-  padding-right: 96px;   /* ⭐关键：给右按钮留空间 */
-
-  overflow: visible !important;
+  padding: 0;
+  overflow: hidden;
 }
 
-.inner-right {
-  right: 56px;
+.tool-scroll-viewport {
+  overflow: hidden;
+  width: 100%;
 }
 
 .second-scroll-wrap {
@@ -805,41 +662,14 @@ const currentHigh = ref(null)
   z-index: 1;
 }
 
-.tool-scroll::-webkit-scrollbar {
+/* .tool-scroll::-webkit-scrollbar {
   display: none;
-}
-
-.inner-scroll-btn {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 9999 !important;
-  width: 44px;
-  height: 44px;
-  border: none;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.98);
-  color: #4caf50;
-  font-size: 26px;
-  line-height: 1;
-  cursor: pointer;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-  pointer-events: auto !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-
-
-.inner-scroll-btn:hover {
-  transform: translateY(-50%) scale(1.06);
-}
+} */
 
 .tool-card {
   flex: 0 0 300px;
   background: #f8fcf8;
-  border: 1px solid rgba(76, 175, 80, 0.12);
+  border: 1px solid rgba(37, 193, 143, 0.12);
   border-radius: 24px;
   padding: 18px;
   cursor: pointer;
@@ -854,8 +684,8 @@ const currentHigh = ref(null)
 }
 
 .tool-card.selected {
-  border-color: #4caf50;
-  box-shadow: 0 10px 24px rgba(76, 175, 80, 0.1);
+  border-color: #25c18f;
+
 }
 
 .tool-image-wrap {
@@ -918,7 +748,7 @@ const currentHigh = ref(null)
   display: flex;
   align-items: center;
   gap: 12px;
-  
+
   flex-wrap: wrap;
 }
 
@@ -930,11 +760,11 @@ const currentHigh = ref(null)
 }
 
 .tool-level {
-  background: rgba(76, 175, 80, 0.12);
+  background: rgba(37, 193, 143, 0.12);
   padding: 4px 10px;
   border-radius: 10px;
   font-size: 12px;
-  color: #39713b;
+  color: #1a8f67;
 }
 
 .tool-usage {
@@ -961,7 +791,7 @@ const currentHigh = ref(null)
   height: 8px;
   margin-top: 8px;
   border-radius: 50%;
-  background: #4caf50;
+  background: #25c18f;
   flex-shrink: 0;
 }
 
@@ -984,7 +814,7 @@ const currentHigh = ref(null)
 
 .primary-btn {
   border: none;
-  background: #4caf50;
+  background: #25c18f;
   color: #fff;
 }
 
@@ -993,9 +823,9 @@ const currentHigh = ref(null)
 }
 
 .ghost-btn {
-  border: 1px solid rgba(76, 175, 80, 0.22);
+  border: 1px solid rgba(37, 193, 143, 0.22);
   background: #fff;
-  color: #2e7d32;
+  color: #25c18f;
 }
 
 .ghost-btn:hover {
@@ -1022,14 +852,14 @@ const currentHigh = ref(null)
 
 .nav-btn {
   position: absolute;
-  top: calc(50% + 60px);
+  top: calc(50% + 120px);
   z-index: 9998;
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  border: 1px solid rgba(76, 175, 80, 0.16);
+  border: 1px solid rgba(37, 193, 143, 0.16);
   background: rgba(255, 255, 255, 0.96);
-  color: #2e7d32;
+  color: #25c18f;
   cursor: pointer;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
   display: flex;
@@ -1046,7 +876,7 @@ const currentHigh = ref(null)
 }
 
 .nav-btn:hover {
-  background: #4caf50;
+  background: #25c18f;
   color: #fff;
 }
 
@@ -1061,14 +891,14 @@ const currentHigh = ref(null)
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: rgba(76, 175, 80, 0.22);
+  background: rgba(37, 193, 143, 0.22);
   transition: all 0.25s ease;
 }
 
 .dots span.active {
   width: 22px;
   border-radius: 4px;
-  background: #4caf50;
+  background: #25c18f;
 }
 
 .fade-slide-enter-active,
@@ -1143,7 +973,7 @@ const currentHigh = ref(null)
   .nav-right {
     right: 6px;
   }
-  
+
 }
 
 

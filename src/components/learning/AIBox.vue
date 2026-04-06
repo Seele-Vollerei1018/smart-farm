@@ -5,43 +5,55 @@
     <!-- 标题 -->
     <div class="section-title-row">
       <h2 class="section-title">💬 AI 对话记录</h2>
-      <button class="clear-btn" @click="$emit('clearChat')">🗑️ 清空对话</button>
+      <button class="clear-btn" @click="$emit('clearChat')">清空对话</button>
     </div>
 
     <!-- 聊天内容 -->
-    <div class="chat-list" ref="chatListRef">
-      <div v-if="messages.length === 0" class="chat-empty">
-        还没有提问，试试点击“问 AI 更多”或者使用下方输入框。
-      </div>
-
-      <div
-        v-for="msg in messages"
-        :key="msg.id"
-        class="chat-item"
-        :class="msg.role"
-      >
-        <div class="bubble" v-if="msg.role === 'user'">
-          {{ msg.content }}
+    <div class="chat-list-container">
+      <div class="chat-list" ref="localChatListRef" @scroll="handleScroll">
+        <div v-if="messages.length === 0" class="chat-empty">
+          还没有提问，试试点击“问 AI 更多”或者使用下方输入框。
         </div>
 
         <div
-          class="bubble markdown-body"
-          v-else
-          v-html="renderMarkdown(msg.content)"
-        ></div>
+          v-for="msg in messages"
+          :key="msg.id"
+          class="chat-item"
+          :class="msg.role"
+        >
+          <div class="bubble" v-if="msg.role === 'user'">
+            {{ msg.content }}
+          </div>
+
+          <div
+            class="bubble markdown-body"
+            v-else
+            v-html="renderMarkdown(msg.content)"
+          ></div>
+        </div>
       </div>
+
+      <!-- 滚动到底部按钮 -->
+      <button
+        v-if="!isAtBottom && messages.length > 0"
+        class="scroll-to-bottom-btn"
+        @click="scrollToBottom"
+        title="滚动到最新消息"
+      >
+        v
+      </button>
     </div>
 
     <!-- ✅ 快捷问题（移进卡片） -->
     <div class="quick-question-row">
-      <button class="quick-btn" @click="$emit('quickAsk', '💡 农具怎么用？')">
-        💡 农具怎么用？
+      <button class="quick-btn" @click="$emit('quickAsk', '农具怎么用？')">
+        农具怎么用？
       </button>
-      <button class="quick-btn" @click="$emit('quickAsk', '🌱 作物怎么种？')">
-        🌱 作物怎么种？
+      <button class="quick-btn" @click="$emit('quickAsk', '作物怎么种？')">
+        作物怎么种？
       </button>
-      <button class="quick-btn" @click="$emit('quickAsk', '🧱 为什么要松土？')">
-        🧱 为什么要松土？
+      <button class="quick-btn" @click="$emit('quickAsk', '为什么要松土？')">
+        为什么要松土？
       </button>
     </div>
 
@@ -70,11 +82,12 @@
 </template>
 
 <script setup>
-defineProps({
+import { ref, watch, nextTick, computed } from 'vue'
+
+const props = defineProps({
   messages: Array,
   input: String,
   isTyping: Boolean,
-  chatListRef: Object,
   renderMarkdown: Function
 })
 
@@ -84,6 +97,35 @@ defineEmits([
   'clearChat',
   'update:input'
 ])
+
+const localChatListRef = ref(null)
+const isAtBottom = ref(true)
+
+// 处理滚动事件
+const handleScroll = () => {
+  if (localChatListRef.value) {
+    const { scrollTop, scrollHeight, clientHeight } = localChatListRef.value
+    // 当滚动到底部附近（10px以内）时，认为在底部
+    isAtBottom.value = scrollTop >= scrollHeight - clientHeight - 10
+  }
+}
+
+// 滚动到底部
+const scrollToBottom = () => {
+  if (localChatListRef.value) {
+    localChatListRef.value.scrollTop = localChatListRef.value.scrollHeight
+    isAtBottom.value = true
+  }
+}
+
+// 监听 messages 变化，自动滚动到最底部
+watch(() => props.messages, async () => {
+  await nextTick()
+  if (localChatListRef.value) {
+    localChatListRef.value.scrollTop = localChatListRef.value.scrollHeight
+    isAtBottom.value = true
+  }
+}, { deep: true })
 </script>
 
 <style scoped>
@@ -97,16 +139,43 @@ defineEmits([
 
   background: #ffffff;
   border-radius: 16px;
-
   box-shadow: 0 6px 18px rgba(0,0,0,0.05);
-  border: 1px solid rgba(0,0,0,0.04);
+  height: 520px;
+  overflow: hidden;
+}
+
+/* 聊天列表容器 */
+.chat-list-container {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* 滚动到底部按钮 */
+.scroll-to-bottom-btn {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #2222;
+  color: white;
+  border: none;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
 }
 
 /* ================== 聊天区域 ================== */
 
 .chat-list {
   min-height: 140px;   /* ⭐关键：预留空间 */
-  max-height: 260px;
+  max-height: 315px;
   overflow-y: auto;
 
   padding: 12px 6px;
@@ -144,7 +213,7 @@ defineEmits([
 
 /* 用户气泡 */
 .chat-item.user .bubble {
-  background: #4caf50;
+  background: #25c18f;
   color: #fff;
 }
 
@@ -162,9 +231,10 @@ defineEmits([
 
 /* 按钮统一风格 */
 .quick-btn {
-  background: #f6fbf7;
-  border: 1px solid rgba(76,175,80,0.25);
+  background: rgba(135, 220, 193, 0.25);
+  border: 1px solid rgba(37,193,143,0.25);
   padding: 6px 12px;
+  margin: 0 8px 3px 0;
   border-radius: 999px;
   font-size: 13px;
   cursor: pointer;
@@ -172,7 +242,7 @@ defineEmits([
 }
 
 .quick-btn:hover {
-  background: #eaf6ee;
+  background: rgba(37,193,143,0.25);
 }
 
 /* ================== 输入区域 ================== */
@@ -203,9 +273,9 @@ defineEmits([
 }
 
 .ai-input:focus {
-  border-color: #4caf50;
+  border-color: #25c18f;
   background: #fff;
-  box-shadow: 0 0 0 2px rgba(76,175,80,0.12);
+  box-shadow: 0 0 0 2px rgba(37,193,143,0.12);
 }
 
 /* 发送按钮 */
@@ -217,7 +287,7 @@ defineEmits([
   border-radius: 10px;
   border: none;
 
-  background: #4caf50;
+  background: #25c18f;
   color: #fff;
   font-size: 13px;
   cursor: pointer;
@@ -226,12 +296,16 @@ defineEmits([
 }
 
 .send-btn:hover {
-  background: #43a047;
+  background: #1db882;
 }
 
 .send-btn:disabled {
-  background: #a5d6a7;
+  background: #25c18faa;
   cursor: not-allowed;
+}
+
+.chat-list::-webkit-scrollbar {
+  display: none;
 }
 
 </style>

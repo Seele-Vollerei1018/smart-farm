@@ -138,7 +138,7 @@ onMounted(() => {
         <span>welcome</span>
         <div class="welcome-title">
           <h1>你好，今天也来看看农场吧</h1>
-          <img src="/src/assets/打招呼.svg" alt="首页" class="welcome-image" />
+          <img src="/src/assets/打招呼.svg" alt="首页" class="welcome-image" loading="lazy" />
         </div>
       </div>
     </div>
@@ -150,7 +150,7 @@ onMounted(() => {
         <section class="feature-cards">
           <router-link to="/dashboard" class="feature-card">
             <div class="card-image">
-              <img src="@/assets/花1.jpg" alt="农场情况" />
+              <img src="@/assets/花1.jpg" alt="农场情况" loading="lazy" />
             </div>
             <div class="card-content">
               <h1>农场情况</h1>
@@ -160,7 +160,7 @@ onMounted(() => {
 
           <router-link to="/control" class="feature-card">
             <div class="card-image">
-              <img src="@/assets/花2.jpg" alt="我的农场" />
+              <img src="@/assets/花2.jpg" alt="我的农场" loading="lazy" />
             </div>
             <div class="card-content">
               <h1>我的农场</h1>
@@ -170,7 +170,7 @@ onMounted(() => {
 
           <router-link to="/learning" class="feature-card">
             <div class="card-image">
-              <img src="@/assets/花3.jpg" alt="趣味学习" />
+              <img src="@/assets/花3.jpg" alt="趣味学习" loading="lazy" />
             </div>
             <div class="card-content">
               <h1>趣味学习</h1>
@@ -234,7 +234,7 @@ onMounted(() => {
 .home {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 0 0 0 2rem;
+  padding: 0 0 0 1rem;
 }
 
 .home-header {

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { getAuthUser, logout } from './utils/auth'
 import { getTasks as apiGetTasks, createTask as apiCreateTask, updateTask as apiUpdateTask, deleteTask as apiDeleteTask } from './api/client'
@@ -9,6 +9,8 @@ const route = useRoute()
 const router = useRouter()
 const currentUser = ref(getAuthUser())
 const isSidebarVisible = ref(true)
+const isRightSidebarVisible = ref(true)
+const showBackToTop = ref(false)
 
 const pageTitles = {
   login: '登录',
@@ -63,6 +65,32 @@ const handleLogout = () => {
 const toggleSidebar = () => {
   isSidebarVisible.value = !isSidebarVisible.value
 }
+
+const toggleRightSidebar = () => {
+  isRightSidebarVisible.value = !isRightSidebarVisible.value
+}
+
+const scrollToTop = () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  })
+}
+
+// 监听滚动事件，控制回到顶部按钮的显示
+const handleScroll = () => {
+  showBackToTop.value = window.scrollY > 300
+}
+
+// 组件挂载时添加滚动事件监听
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll)
+})
+
+// 组件卸载时移除滚动事件监听
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+})
 
 // 生成日历
 function generateCalendar() {
@@ -301,45 +329,76 @@ init()
 
     <div
       class="main-content"
-      :class="{ 'sidebar-visible': isSidebarVisible, 'sidebar-hidden': !isSidebarVisible }"
+      :class="{
+        'sidebar-visible': isSidebarVisible,
+        'sidebar-hidden': !isSidebarVisible,
+        'right-sidebar-visible': isRightSidebarVisible,
+        'right-sidebar-hidden': !isRightSidebarVisible
+      }"
     >
       <main class="content-area">
-        <button v-if="!isSidebarVisible" type="button" class="sidebar-expand-btn" @click="toggleSidebar" aria-label="展开侧边栏">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 18l6-6-6-6" />
-          </svg>
-          <span>展开侧边栏</span>
-        </button>
+        <div class="sidebar-expand-buttons">
+          <button v-if="!isSidebarVisible" type="button" class="sidebar-expand-btn" @click="toggleSidebar" aria-label="展开侧边栏">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </button>
+          <button v-if="!isRightSidebarVisible" type="button" class="sidebar-expand-btn right-sidebar-expand-btn" @click="toggleRightSidebar" aria-label="展开右侧侧边栏">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+        </div>
         <RouterView />
+        
+        <!-- 回到顶部按钮 -->
+        <button
+          v-if="showBackToTop"
+          type="button"
+          class="back-to-top-btn"
+          @click="scrollToTop"
+          aria-label="回到顶部"
+        >
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 19V5M5 12l7-7 7 7" />
+          </svg>
+        </button>
       </main>
     </div>
 
     <!-- 全局右边栏 -->
-    <aside class="global-sidebar" aria-label="全局信息栏">
-      <!-- 用户名 -->
-      <div class="user-profile">
-        <div class="avatar" @click="$refs.avatarInput.click()">
-          <img v-if="userAvatar" :src="userAvatar" alt="用户头像" />
-          <div v-else class="avatar-placeholder">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-              <circle cx="12" cy="7" r="4"></circle>
-            </svg>
+    <aside class="global-sidebar" v-show="isRightSidebarVisible" aria-label="全局信息栏">
+      <div class="sidebar-header">
+        <button type="button" class="sidebar-collapse-btn" @click="toggleRightSidebar" aria-label="收起右侧侧边栏">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </button>
+        <!-- 用户名 -->
+        <div class="user-profile">
+          <div class="avatar" @click="$refs.avatarInput.click()">
+            <img v-if="userAvatar" :src="userAvatar" alt="用户头像" loading="lazy" />
+            <div v-else class="avatar-placeholder">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
+            <div class="avatar-overlay">
+              <span>更换头像</span>
+            </div>
           </div>
-          <div class="avatar-overlay">
-            <span>更换头像</span>
+          <input
+            ref="avatarInput"
+            type="file"
+            accept="image/*"
+            style="display: none"
+            @change="handleAvatarUpload"
+          />
+          <div class="user-info">
+            <span class="username">{{ displayName }}</span>
+            <span class="welcome">欢迎回来</span>
           </div>
-        </div>
-        <input
-          ref="avatarInput"
-          type="file"
-          accept="image/*"
-          style="display: none"
-          @change="handleAvatarUpload"
-        />
-        <div class="user-info">
-          <span class="username">{{ displayName }}</span>
-          <span class="welcome">欢迎回来</span>
         </div>
       </div>
 
@@ -459,8 +518,8 @@ init()
   border-right: 1px solid #e0e0e0;
   box-shadow: 4px 0 32px rgba(0, 0, 0, 0.08);
   width: 252px;
-  overflow: hidden; /* 防止内部阴影或元素溢出 */
-  pointer-events: auto; /* 确保它自己还能点 */
+  overflow: hidden;
+  pointer-events: auto;
 }
 
 .brand {
@@ -507,12 +566,10 @@ init()
   padding: 0.5rem 0.8rem;
   border: none;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.75);
   color: var(--sf-green-mid);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.2s ease;
   z-index: 10;
 }
 
@@ -626,6 +683,11 @@ init()
   min-width: 0;
 
   background: var(--sf-surface);
+  transition: margin-right 0.3s ease;
+}
+
+.main-content.right-sidebar-hidden {
+  margin-right: 0;
 }
 
 /* ===== 右侧栏 ===== */
@@ -652,16 +714,29 @@ init()
   overflow-y: auto;
 }
 
+.global-sidebar .sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  gap: 1rem;
+}
 
-/* ❌ 删除你原来的这两段（必须删） */
-/*
-.main-content {
-  z-index: 9999;
+.global-sidebar .sidebar-collapse-btn {
+  position: relative;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.8rem;
+  border: none;
+  border-radius: 8px;
+  color: var(--sf-green-mid);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 10;
 }
-.global-sidebar {
-  pointer-events: none;
-}
-*/
 
 .top-bar {
   display: flex;
@@ -760,6 +835,41 @@ init()
   overflow-y: auto;
 }
 
+/* 回到顶部按钮 */
+.back-to-top-btn {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--sf-green-mid);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(37, 193, 143, 0.4);
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+.back-to-top-btn:hover {
+  background: var(--sf-green);
+  transform: translateY(-5px);
+  box-shadow: 0 6px 16px rgba(37, 193, 143, 0.6);
+}
+
+@media (max-width: 768px) {
+  .back-to-top-btn {
+    bottom: 20px;
+    right: 20px;
+    width: 45px;
+    height: 45px;
+  }
+}
+
 .sidebar-expand-btn {
   display: flex;
   align-items: center;
@@ -783,14 +893,28 @@ init()
   box-shadow: 0 6px 16px rgba(37, 193, 143, 0.4);
 }
 
+.sidebar-expand-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
 
+.right-sidebar-expand-btn {
+  margin-left: auto;
+}
 
 .main-content.sidebar-hidden {
   margin-left: 0;
+}
+
+.main-content.sidebar-hidden.right-sidebar-visible {
   margin-right: 360px;
 }
 
-
+.main-content.sidebar-hidden.right-sidebar-hidden {
+  margin-right: 0;
+}
 
 .user-profile {
   background: white;
@@ -800,7 +924,7 @@ init()
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  width: 100%;
+  flex: 1;
   height: 70px;
   box-sizing: border-box;
 }
@@ -958,7 +1082,6 @@ init()
   color: white;
   text-align: center;
   padding: 0.3rem;
-  border-radius: 6px;
   font-size: 0.85rem;
   font-weight: 700;
   min-height: 24px;
@@ -1262,7 +1385,18 @@ init()
 
   .main-content.sidebar-hidden {
     margin-left: 0;
+  }
+
+  .main-content.right-sidebar-hidden {
+    margin-right: 0;
+  }
+
+  .main-content.sidebar-hidden.right-sidebar-visible {
     margin-right: 360px;
+  }
+
+  .main-content.sidebar-hidden.right-sidebar-hidden {
+    margin-right: 0;
   }
 }
 
@@ -1278,6 +1412,10 @@ init()
 
   .main-content.sidebar-visible {
     margin-left: 0;
+  }
+
+  .main-content.right-sidebar-hidden {
+    margin-right: 0;
   }
 
   .welcome-text {

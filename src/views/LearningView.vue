@@ -1,7 +1,9 @@
 <template>
   <div class="learning-page">
     <HeroSection />
-    <LevelTabs v-model="currentLevel" />
+    <div class="level-tabs-container">
+      <LevelTabs v-model="currentLevel" />
+    </div>
 
     <ToolSection
       :level="currentLevel"
@@ -21,20 +23,16 @@
       @changePage="handlePageChange"
       @enterModule="enterModule"
     />
-
-  
-
    <!-- ================== 视频推荐 ================== -->
     <div class="page-block">
       <VideoSection />
     </div>
-      
-    <div class="page-block">
+
+    <div class="page-block" ref="aiBoxContainer">
       <AIBox
         :messages="messages"
         :input="input"
         :isTyping="isTyping"
-        :chatListRef="chatListRef"
         :renderMarkdown="renderMarkdown"
         @sendMessage="sendMessage"
         @quickAsk="quickAsk"
@@ -135,8 +133,6 @@ const currentLevel = ref('primary')
 watch(currentLevel, () => {
   currentPage.value = 0
 })
-
-
 
 const showDetail = ref(false)
 
@@ -434,8 +430,6 @@ const seasons = ref([
   }
 ])
 
-
-
 const solarTerms = ref([
   // --- 🌸 春天：唤醒大地的闹钟 ---
   {
@@ -665,7 +659,6 @@ const regions = ref([
   }
 ])
 
-
 const advancedItems = [
   {
     id: 'env',
@@ -678,7 +671,7 @@ const advancedItems = [
       '光照强度：控制光合作用速率的“燃料”',
       '实时温度：影响酶活性，决定作物的生长速度'
     ],
-    
+
     image: huanjing
   },
   {
@@ -692,7 +685,7 @@ const advancedItems = [
       '循环风扇：模拟自然风，增强茎秆强度并降温',
       '自动化遮阳：防止午后强光灼伤幼嫩叶片'
     ],
-    
+
     image: zidonghua
   },
   {
@@ -764,12 +757,10 @@ const handlePageChange = (page) => {
   currentPage.value = Math.max(0, Math.min(2, page))
 }
 
-
-
 const input = ref('')
 const messages = ref([])
 const isTyping = ref(false)
-const chatListRef = ref(null)
+const aiBoxContainer = ref(null)
 let messageId = 1
 
 const STORAGE_KEY = 'learning-chat-history'
@@ -811,7 +802,6 @@ const sendMessage = async () => {
   })
 
   input.value = ''
-  await scrollChatToBottom()
 
   const aiMessage = {
     id: messageId++,
@@ -827,7 +817,6 @@ const sendMessage = async () => {
     for (let i = 0; i < reply.length; i++) {
       aiMessage.content += reply[i]
       await wait(15)
-      await scrollChatToBottom()
     }
   } catch (e) {
     aiMessage.content = '❌ AI请求失败'
@@ -845,6 +834,16 @@ const quickAsk = (text) => {
 const askToolMore = (tool) => {
   input.value = `介绍一下${tool.name}的使用技巧`
   sendMessage()
+
+  // 滚动到 AI 对话记录卡片
+  setTimeout(() => {
+    if (aiBoxContainer.value) {
+      aiBoxContainer.value.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      })
+    }
+  }, 300)
 }
 
 const askQuizAI = () => {
@@ -858,13 +857,6 @@ const askVideoAI = () => {
 }
 
 const wait = (ms) => new Promise(r => setTimeout(r, ms))
-
-const scrollChatToBottom = async () => {
-  await nextTick()
-  if (chatListRef.value) {
-    chatListRef.value.scrollTop = chatListRef.value.scrollHeight
-  }
-}
 
 const clearChat = () => {
   messages.value = []
@@ -883,114 +875,102 @@ const renderMarkdown = (text) => {
 </script>
 
 <style scoped>
-/* ================== 页面统一系统 ================== */
-
-/* 页面整体节奏 */
 .learning-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 0 0 1rem;
+  min-height: 100vh;
+  overflow-y: auto;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 24px;   /* ✅ 核心：统一间距 */
+  gap: 2rem;
+}
+
+/* LevelTabs 容器，减少与上下组件的间距 */
+.level-tabs-container {
+  margin-top: -1rem;
+  margin-bottom: -1rem;
 }
 
 /* 每个模块统一容器 */
 .page-block {
-  margin: 0;   /* ❌ 禁止自己乱加间距 */
+  margin: 0;
 }
 
 /* 所有卡片统一风格 */
 .learning-page :deep(.content-card) {
   background: #ffffff;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.05);
-
-  /* ❗关键：清除组件自己的 margin */
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   margin: 0;
-}
-
-
-
-.learning-page {
-  min-height: 100vh;
-  padding: 28px 28px 160px;
-
-  /* ✅ 统一背景 */
-  background: #f6f9f7;
-
-  overflow-y: auto;
-  box-sizing: border-box;
-}
-
-@media (max-width: 900px) {
-  .learning-page {
-    padding: 20px 16px 150px;
-  }
-}
-
-.learning-page :deep(.content-card) {
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.04);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 20px;
-}
-
-.learning-page :deep(.content-card:hover) {
-  transform: translateY(-2px);
-  box-shadow: 0 18px 40px rgba(101, 131, 103, 0.12);
 }
 
 .learning-page :deep(.section-title-row) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 18px;
+  gap: 1rem;
+  margin-bottom: 1rem;
   flex-wrap: wrap;
 }
 
 .learning-page :deep(.section-title) {
-  font-size: 20px;
-  font-weight: 700;
-  color: #2f3e2f;
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #333;
 }
 
 .learning-page :deep(.section-subtitle) {
-  color: #78907b;
-  font-size: 13px;
+  color: #999;
+  font-size: 0.9rem;
 }
 
-.learning-page :deep(.primary-btn),
-.learning-page :deep(.ghost-btn),
-.learning-page :deep(.clear-btn),
-.learning-page :deep(.robot-btn),
-.learning-page :deep(.quick-btn),
-.learning-page :deep(.send-btn),
-.learning-page :deep(.quiz-option) {
-  transition: all 0.3s ease-in-out;
-}
-
+/* 按钮样式统一 */
 .learning-page :deep(.primary-btn) {
-  background: #4caf50;
-  color: #fff;
-  border-radius: 10px;
-  padding: 10px 16px;
+  background: #25c18f;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  font-size: 1rem;
   font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
 }
 
 .learning-page :deep(.primary-btn:hover) {
+  background: #1db882;
+  transform: translateY(-2px);
+}
+
+.learning-page :deep(.secondary-btn) {
+  background: #000000;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.learning-page :deep(.secondary-btn:hover) {
+  background: #333333;
   transform: translateY(-2px);
 }
 
 .learning-page :deep(.ghost-btn) {
-  border: 1px solid rgba(76, 175, 80, 0.24);
+  border: 1px solid rgba(37, 193, 143, 0.24);
   background: #fff;
-  color: #2f7d32;
-  padding: 12px 18px;
-  border-radius: 14px;
-  font-weight: 700;
+  color: #25c18f;
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
 .learning-page :deep(.ghost-btn:hover) {
@@ -1000,18 +980,20 @@ const renderMarkdown = (text) => {
 
 .learning-page :deep(.clear-btn) {
   border: none;
-  background: rgba(76, 175, 80, 0.12);
-  color: #2f7d32;
-  border-radius: 12px;
-  padding: 10px 14px;
-  font-weight: 700;
+  background: rgba(37, 193, 143, 0.12);
+  color: #25c18f;
+  border-radius: 25px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
 .learning-page :deep(.clear-btn:hover) {
   transform: translateY(-2px);
 }
 
+/* 动画效果 */
 .learning-page :deep(.fade-slide-enter-active),
 .learning-page :deep(.fade-slide-leave-active) {
   transition: all 0.3s ease-in-out;
@@ -1044,10 +1026,6 @@ const renderMarkdown = (text) => {
 .learning-page :deep(.quiz-result) {
   animation: popIn 0.35s ease;
 }
-  /* ✅ 全局模块间距系统 */
-.page-block {
-  margin-top: 24px;
-}
 
 @keyframes popIn {
   0% {
@@ -1060,16 +1038,20 @@ const renderMarkdown = (text) => {
   }
 }
 
+/* 响应式设计 */
 @media (max-width: 1200px) {
   .learning-page :deep(.tool-detail),
   .learning-page :deep(.video-layout) {
     grid-template-columns: 1fr;
   }
-
-  
 }
 
 @media (max-width: 900px) {
+  .learning-page {
+    padding: 1rem;
+    padding-bottom: 160px;
+  }
+
   .learning-page :deep(.hero-title) {
     font-size: 28px;
   }
@@ -1077,14 +1059,11 @@ const renderMarkdown = (text) => {
   .learning-page :deep(.quiz-options) {
     grid-template-columns: 1fr;
   }
+}
 
-  
-
+@media (max-width: 768px) {
   .learning-page {
-    padding-bottom: 160px;
+    padding: 1rem;
   }
-
-
-
 }
 </style>
