@@ -458,6 +458,9 @@ init()
   background: #ffffff;
   border-right: 1px solid #e0e0e0;
   box-shadow: 4px 0 32px rgba(0, 0, 0, 0.08);
+  width: 252px;
+  overflow: hidden; /* 防止内部阴影或元素溢出 */
+  pointer-events: auto; /* 确保它自己还能点 */
 }
 
 .brand {
@@ -608,15 +611,57 @@ init()
   line-height: 1.4;
 }
 
+/* ===== 主内容区 ===== */
 .main-content {
+  position: relative;
+  z-index: 1;
+
   flex: 1;
   margin-left: 252px;
+  margin-right: 360px;
+
   display: flex;
   flex-direction: column;
   min-height: 100vh;
   min-width: 0;
+
   background: var(--sf-surface);
 }
+
+/* ===== 右侧栏 ===== */
+.global-sidebar {
+  pointer-events: auto;
+  width: 350px;
+  position: fixed;
+  right: 0;
+  top: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+
+  z-index: 50;
+
+  background: white;
+  border-radius: 0 0 0 12px;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  padding: 0.8rem;
+
+  height: 100vh;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+
+/* ❌ 删除你原来的这两段（必须删） */
+/*
+.main-content {
+  z-index: 9999;
+}
+.global-sidebar {
+  pointer-events: none;
+}
+*/
 
 .top-bar {
   display: flex;
@@ -738,40 +783,14 @@ init()
   box-shadow: 0 6px 16px rgba(37, 193, 143, 0.4);
 }
 
-.main-content {
-  flex: 1;
-  margin-left: 252px;
-  margin-right: 400px; /* 为右边栏留出空间 */
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  min-width: 0;
-  background: var(--sf-surface);
-}
+
 
 .main-content.sidebar-hidden {
   margin-left: 0;
-  margin-right: 400px;
+  margin-right: 360px;
 }
 
-/* 全局右边栏样式 */
-.global-sidebar {
-  width: 350px;
-  position: fixed;
-  right: 0;
-  top: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
-  z-index: 10;
-  background: white;
-  border-radius: 0 0 0 12px;
-  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
-  padding: 0.8rem;
-  height: 100vh;
-  box-sizing: border-box;
-  overflow-y: auto;
-}
+
 
 .user-profile {
   background: white;
@@ -867,6 +886,8 @@ init()
   box-sizing: border-box;
   flex-shrink: 0;
   overflow: hidden;
+  position: relative;
+  z-index: 1;
 }
 
 .calendar-section h1 {
@@ -1236,12 +1257,12 @@ init()
 
   .main-content {
     margin-left: 220px;
-    margin-right: 400px; /* 为右边栏留出空间 */
+    margin-right: 360px;
   }
 
   .main-content.sidebar-hidden {
     margin-left: 0;
-    margin-right: 400px;
+    margin-right: 360px;
   }
 }
 
@@ -1265,6 +1286,16 @@ init()
 
   .content-area {
     padding: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .global-sidebar {
+    display: none;   /* ⭐手机直接隐藏 */
+  }
+
+  .main-content {
+    margin-right: 0; /* ⭐恢复全屏 */
   }
 }
 </style>

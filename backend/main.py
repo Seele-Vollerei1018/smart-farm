@@ -261,7 +261,6 @@ app.add_middleware(
 app.include_router(ai_router, prefix="/api/v1/ai")
 
 
-
 # 全局变量
 LATEST: Dict[str, Any] = {
     "temperature": None,  # 最新温度
@@ -1048,3 +1047,17 @@ def add_diary(user_id: str, diary: dict):
     diaries[user_id].append(diary)
     write_json(DIARIES_FILE, diaries)
     return {"msg": "添加成功"}
+
+# ==================== 前端实时控制接口 ====================
+
+# 获取设备状态（给前端用）
+@app.get("/data")
+def get_data():
+    status = "online" if LATEST["timestamp"] else "offline"
+    return {
+        "status": status,
+        "temperature": LATEST["temperature"],
+        "humidity": LATEST["humidity"]
+    }
+
+
