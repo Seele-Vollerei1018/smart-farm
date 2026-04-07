@@ -1428,13 +1428,5 @@ init()
   }
 }
 
-@media (max-width: 768px) {
-  .global-sidebar {
-    display: none;   /* ⭐手机直接隐藏 */
-  }
 
-  .main-content {
-    margin-right: 0; /* ⭐恢复全屏 */
-  }
-}
 </style>
