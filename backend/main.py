@@ -1,11 +1,9 @@
-# 智慧农业监测系统后端
-# 基于FastAPI和CSV存储的原型实现
-
 import os
 import threading
 import time
 import uuid
 import random
+import json
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Literal, Optional
 
@@ -19,16 +17,57 @@ import csv
 
 # 配置参数
 CSV_PATH = os.environ.get("SENSOR_CSV_PATH", os.path.join(".", "sensor_data.csv"))  # 传感器数据CSV文件路径
-POLL_INTERVAL_SEC = float(os.environ.get("CSV_POLL_INTERVAL_SEC", "2.0"))  # 轮询间隔（秒）
+POLL_INTERVAL_SEC = float(os.environ.get("CSV_POLL_INTERVAL_SEC", "20.0"))  # 轮询间隔（秒）
 ONLINE_DELTA_SEC = int(os.environ.get("DEVICE_OFFLINE_AFTER_SEC", "120"))  # 设备离线判断时间（秒）
+USER_DATA_PATH = os.environ.get("USER_DATA_PATH", os.path.join(".", "user_data.json"))  # 用户数据JSON文件路径
+DIARY_DATA_PATH = os.environ.get("DIARY_DATA_PATH", os.path.join(".", "diary_data.json"))  # 日记数据JSON文件路径
+TASK_DATA_PATH = os.environ.get("TASK_DATA_PATH", os.path.join(".", "task_data.json"))  # 待办任务数据JSON文件路径
 
 # 线程锁
 CSV_LOCK = threading.Lock()  # CSV文件操作锁
 RULES_LOCK = threading.Lock()  # 规则操作锁
+USER_LOCK = threading.Lock()  # 用户数据操作锁
+DIARY_LOCK = threading.Lock()  # 日记数据操作锁
+TASK_LOCK = threading.Lock()  # 待办任务数据操作锁
 
-# 模拟数据配置
-ENABLE_SIMULATION = os.environ.get("ENABLE_SENSOR_SIMULATION", "true").lower() == "true"  # 是否启用传感器数据模拟
-SIM_POLL_INTERVAL_SEC = float(os.environ.get("SIM_POLL_INTERVAL_SEC", "2.0"))  # 模拟数据生成间隔（秒）
+
+def _ensure_json_file(path: str, default_content: Any) -> None:
+    """
+    确保JSON文件存在并包含默认内容
+    如果文件不存在，则创建并写入默认内容
+    """
+    if os.path.exists(path) and os.path.getsize(path) > 0:
+        return
+
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(default_content, f, ensure_ascii=False, indent=2)
+
+
+def _load_json(path: str, default_content: Any) -> Any:
+    """
+    加载JSON文件数据
+    如果文件不存在或为空，则返回默认内容
+    """
+    _ensure_json_file(path, default_content)
+    with open(path, "r", encoding="utf-8") as f:
+        try:
+            return json.load(f)
+        except json.JSONDecodeError:
+            return default_content
+
+
+def _save_json(path: str, data: Any) -> None:
+    """
+    保存数据到JSON文件
+    """
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+# 模拟数据配置（已注释掉，不再使用模拟数据）
+# ENABLE_SIMULATION = os.environ.get("ENABLE_SENSOR_SIMULATION", "true").lower() == "true"  # 是否启用传感器数据模拟
+# SIM_POLL_INTERVAL_SEC = float(os.environ.get("SIM_POLL_INTERVAL_SEC", "20.0"))  # 模拟数据生成间隔（秒）
 
 
 def _ensure_csv_header_if_missing(path: str) -> None:
@@ -157,6 +196,56 @@ class TelemetryUploadRequest(BaseModel):
     data: Dict[str, Any]  # 传感器数据
 
 
+class UserLoginRequest(BaseModel):
+    """
+    用户登录请求
+    """
+    username: str  # 用户名
+    password: str  # 密码
+
+
+class UserRegisterRequest(BaseModel):
+    """
+    用户注册请求
+    """
+    username: str  # 用户名
+    password: str  # 密码
+    displayName: str  # 显示名称
+
+
+class DiaryCreateRequest(BaseModel):
+    """
+    创建日记请求
+    """
+    title: str  # 日记标题
+    content: str  # 日记内容
+
+
+class DiaryUpdateRequest(BaseModel):
+    """
+    更新日记请求
+    """
+    title: str  # 日记标题
+    content: str  # 日记内容
+
+
+class TaskCreateRequest(BaseModel):
+    """
+    创建待办任务请求
+    """
+    title: str  # 任务标题
+    description: str = ""  # 任务描述
+
+
+class TaskUpdateRequest(BaseModel):
+    """
+    更新待办任务请求
+    """
+    title: str  # 任务标题
+    description: str = ""  # 任务描述
+    completed: bool = False  # 是否完成
+
+
 # 创建FastAPI应用实例
 app = FastAPI(title="Smart Farm Backend (CSV-based prototype)")
 
@@ -279,37 +368,37 @@ def _rule_engine_tick() -> None:
         time.sleep(POLL_INTERVAL_SEC)
 
 
-def _sensor_simulation_tick() -> None:
-    """
-    传感器数据模拟函数
-    在没有树莓派/真实传感器的情况下，生成模拟数据
-    模拟数据会写入CSV，确保系统能够正常运行
-    """
-    while True:
-        try:
-            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+# def _sensor_simulation_tick() -> None:
+#     """
+#     传感器数据模拟函数
+#     在没有树莓派/真实传感器的情况下，生成模拟数据
+#     模拟数据会写入CSV，确保系统能够正常运行
+#     """
+#     while True:
+#         try:
+#             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-            # 经验范围：可根据实际传感器标定调整
-            base_temp = 24.0 + random.uniform(-1.2, 1.2)  # 温度范围：22.8-25.2℃
-            base_humi = 70 + random.uniform(-4.0, 4.0)  # 湿度范围：66-74%
-            base_light = 8200 + random.uniform(-700, 700)  # 光照范围：7500-8900 lux
-            base_soil = 55 + random.uniform(-7.0, 7.0)  # 土壤湿度范围：48-62%
+#             # 经验范围：可根据实际传感器标定调整
+#             base_temp = 24.0 + random.uniform(-1.2, 1.2)  # 温度范围：22.8-25.2℃
+#             base_humi = 70 + random.uniform(-4.0, 4.0)  # 湿度范围：66-74%
+#             base_light = 8200 + random.uniform(-700, 700)  # 光照范围：7500-8900 lux
+#             base_soil = 55 + random.uniform(-7.0, 7.0)  # 土壤湿度范围：48-62%
 
-            row = {
-                "timestamp": now,
-                "temperature": int(round(base_temp)),
-                "humidity": int(round(base_humi)),
-                "light": int(round(max(0, base_light))),
-                "soil_moisture": int(round(max(0, min(100, base_soil)))),
-            }
+#             row = {
+#                 "timestamp": now,
+#                 "temperature": int(round(base_temp)),
+#                 "humidity": int(round(base_humi)),
+#                 "light": int(round(max(0, base_light))),
+#                 "soil_moisture": int(round(max(0, min(100, base_soil)))),
+#             }
 
-            with CSV_LOCK:
-                _append_row(row)
-        except Exception:
-            # 防止模拟线程异常退出
-            pass
+#             with CSV_LOCK:
+#                 _append_row(row)
+#         except Exception:
+#             # 防止模拟线程异常退出
+#             pass
 
-        time.sleep(SIM_POLL_INTERVAL_SEC)
+#         time.sleep(SIM_POLL_INTERVAL_SEC)
 
 
 def _clear_csv_daily() -> None:
@@ -346,10 +435,10 @@ def _startup() -> None:
     t = threading.Thread(target=_rule_engine_tick, daemon=True)
     t.start()
 
-    # 如果启用了传感器模拟，启动模拟线程
-    if ENABLE_SIMULATION:
-        sim = threading.Thread(target=_sensor_simulation_tick, daemon=True)
-        sim.start()
+    # 如果启用了传感器模拟，启动模拟线程（已注释掉，不再使用模拟数据）
+    # if ENABLE_SIMULATION:
+    #     sim = threading.Thread(target=_sensor_simulation_tick, daemon=True)
+    #     sim.start()
     
     # 启动每日清空CSV文件的线程
     clear_csv_thread = threading.Thread(target=_clear_csv_daily, daemon=True)
@@ -493,8 +582,9 @@ def telemetry_upload(req: TelemetryUploadRequest) -> Dict[str, Any]:
         上传结果
     """
     data = req.data or {}
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     row = {
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "timestamp": timestamp,
         "temperature": data.get("temperature"),
         "humidity": data.get("humidity"),
         "light": data.get("light"),
@@ -509,7 +599,14 @@ def telemetry_upload(req: TelemetryUploadRequest) -> Dict[str, Any]:
     with CSV_LOCK:
         _append_row(row)
 
-    return {"code": 200, "msg": "success", "server_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "commands": []}
+    # 更新缓存数据
+    LATEST["timestamp"] = timestamp
+    LATEST["temperature"] = row["temperature"]
+    LATEST["humidity"] = row["humidity"]
+    LATEST["light"] = row["light"]
+    LATEST["soil_moisture"] = row["soil_moisture"]
+
+    return {"code": 200, "msg": "success", "server_time": timestamp, "commands": []}
 
 
 @app.get("/api/v1/analytics/report/export")
@@ -552,3 +649,399 @@ def export_report(format: Literal["pdf", "xlsx"] = "xlsx") -> Any:
         filename="smart_farm_report.xlsx",
     )
 
+
+@app.post("/api/v1/auth/login")
+def login(req: UserLoginRequest) -> Dict[str, Any]:
+    """
+    用户登录
+    参数：
+        req: 登录请求，包含用户名和密码
+    返回：
+        登录结果，包含用户信息和登录状态
+    """
+    with USER_LOCK:
+        users = _load_json(USER_DATA_PATH, {})
+        user = users.get(req.username)
+        
+        # 测试账号：admin / admin123
+        if req.username == "admin":
+            if req.password == "admin123":
+                return {
+                    "ok": True,
+                    "user": {
+                        "username": "admin",
+                        "displayName": "admin",
+                        "loginAt": datetime.now().isoformat()
+                    }
+                }
+            else:
+                return {
+                    "ok": False,
+                    "message": "密码错误",
+                    "code": "PASSWORD_ERROR"
+                }
+        
+        if not user:
+            return {
+                "ok": False,
+                "message": "用户不存在",
+                "code": "USER_NOT_FOUND"
+            }
+        
+        if user.get("password") != req.password:
+            return {
+                "ok": False,
+                "message": "密码错误",
+                "code": "PASSWORD_ERROR"
+            }
+        
+        # 更新登录时间
+        user["loginAt"] = datetime.now().isoformat()
+        users[req.username] = user
+        _save_json(USER_DATA_PATH, users)
+        
+        return {
+            "ok": True,
+            "user": {
+                "username": user["username"],
+                "displayName": user["displayName"],
+                "loginAt": user["loginAt"]
+            }
+        }
+
+
+@app.post("/api/v1/auth/register")
+def register(req: UserRegisterRequest) -> Dict[str, Any]:
+    """
+    用户注册
+    参数：
+        req: 注册请求，包含用户名、密码和显示名称
+    返回：
+        注册结果
+    """
+    with USER_LOCK:
+        users = _load_json(USER_DATA_PATH, {})
+        
+        if req.username in users:
+            return {
+                "ok": False,
+                "message": "用户名已存在"
+            }
+        
+        # 创建新用户
+        users[req.username] = {
+            "username": req.username,
+            "password": req.password,
+            "displayName": req.displayName,
+            "createdAt": datetime.now().isoformat()
+        }
+        
+        _save_json(USER_DATA_PATH, users)
+        
+        return {
+            "ok": True,
+            "message": "注册成功"
+        }
+
+
+@app.get("/api/v1/diaries")
+def get_diaries(username: str) -> Dict[str, Any]:
+    """
+    获取用户的日记列表
+    参数：
+        username: 用户名
+    返回：
+        日记列表
+    """
+    with DIARY_LOCK:
+        diaries = _load_json(DIARY_DATA_PATH, {})
+        user_diaries = diaries.get(username, [])
+        return {
+            "code": 200,
+            "data": user_diaries
+        }
+
+
+@app.post("/api/v1/diaries")
+def create_diary(username: str, req: DiaryCreateRequest) -> Dict[str, Any]:
+    """
+    创建新日记
+    参数：
+        username: 用户名
+        req: 日记创建请求，包含标题和内容
+    返回：
+        创建结果
+    """
+    with DIARY_LOCK:
+        diaries = _load_json(DIARY_DATA_PATH, {})
+        user_diaries = diaries.get(username, [])
+        
+        # 生成新日记ID
+        new_id = max([d.get("id", 0) for d in user_diaries]) + 1 if user_diaries else 1
+        
+        new_diary = {
+            "id": new_id,
+            "title": req.title,
+            "content": req.content,
+            "createdAt": datetime.now().isoformat(),
+            "updatedAt": datetime.now().isoformat()
+        }
+        
+        user_diaries.append(new_diary)
+        diaries[username] = user_diaries
+        _save_json(DIARY_DATA_PATH, diaries)
+        
+        return {
+            "code": 200,
+            "msg": "日记创建成功",
+            "data": new_diary
+        }
+
+
+@app.put("/api/v1/diaries/{diary_id}")
+def update_diary(username: str, diary_id: int, req: DiaryUpdateRequest) -> Dict[str, Any]:
+    """
+    更新日记
+    参数：
+        username: 用户名
+        diary_id: 日记ID
+        req: 日记更新请求，包含标题和内容
+    返回：
+        更新结果
+    """
+    with DIARY_LOCK:
+        diaries = _load_json(DIARY_DATA_PATH, {})
+        user_diaries = diaries.get(username, [])
+        
+        # 查找日记
+        diary_index = None
+        for i, d in enumerate(user_diaries):
+            if d.get("id") == diary_id:
+                diary_index = i
+                break
+        
+        if diary_index is None:
+            return {
+                "code": 404,
+                "msg": "日记不存在"
+            }
+        
+        # 更新日记
+        user_diaries[diary_index] = {
+            **user_diaries[diary_index],
+            "title": req.title,
+            "content": req.content,
+            "updatedAt": datetime.now().isoformat()
+        }
+        
+        diaries[username] = user_diaries
+        _save_json(DIARY_DATA_PATH, diaries)
+        
+        return {
+            "code": 200,
+            "msg": "日记更新成功",
+            "data": user_diaries[diary_index]
+        }
+
+
+@app.delete("/api/v1/diaries/{diary_id}")
+def delete_diary(username: str, diary_id: int) -> Dict[str, Any]:
+    """
+    删除日记
+    参数：
+        username: 用户名
+        diary_id: 日记ID
+    返回：
+        删除结果
+    """
+    with DIARY_LOCK:
+        diaries = _load_json(DIARY_DATA_PATH, {})
+        user_diaries = diaries.get(username, [])
+        
+        # 过滤掉要删除的日记
+        new_user_diaries = [d for d in user_diaries if d.get("id") != diary_id]
+        
+        if len(new_user_diaries) == len(user_diaries):
+            return {
+                "code": 404,
+                "msg": "日记不存在"
+            }
+        
+        diaries[username] = new_user_diaries
+        _save_json(DIARY_DATA_PATH, diaries)
+        
+        return {
+            "code": 200,
+            "msg": "日记删除成功"
+        }
+
+
+# ==================== 待办任务 API ====================
+
+@app.get("/api/v1/tasks")
+def get_tasks(username: str) -> Dict[str, Any]:
+    """
+    获取用户的待办任务列表
+    参数：
+        username: 用户名
+    返回：
+        任务列表
+    """
+    with TASK_LOCK:
+        tasks = _load_json(TASK_DATA_PATH, {})
+        user_tasks = tasks.get(username, [])
+        return {
+            "code": 200,
+            "data": user_tasks
+        }
+
+
+@app.post("/api/v1/tasks")
+def create_task(username: str, req: TaskCreateRequest) -> Dict[str, Any]:
+    """
+    创建新待办任务
+    参数：
+        username: 用户名
+        req: 任务创建请求，包含标题和描述
+    返回：
+        创建结果
+    """
+    with TASK_LOCK:
+        tasks = _load_json(TASK_DATA_PATH, {})
+        user_tasks = tasks.get(username, [])
+        
+        # 生成新任务ID
+        new_id = max([t.get("id", 0) for t in user_tasks]) + 1 if user_tasks else 1
+        
+        new_task = {
+            "id": new_id,
+            "title": req.title,
+            "description": req.description,
+            "completed": False,
+            "createdAt": datetime.now().isoformat(),
+            "updatedAt": datetime.now().isoformat()
+        }
+        
+        user_tasks.insert(0, new_task)
+        tasks[username] = user_tasks
+        _save_json(TASK_DATA_PATH, tasks)
+        
+        return {
+            "code": 200,
+            "msg": "任务创建成功",
+            "data": new_task
+        }
+
+
+@app.put("/api/v1/tasks/{task_id}")
+def update_task(username: str, task_id: int, req: TaskUpdateRequest) -> Dict[str, Any]:
+    """
+    更新待办任务
+    参数：
+        username: 用户名
+        task_id: 任务ID
+        req: 任务更新请求，包含标题、描述和完成状态
+    返回：
+        更新结果
+    """
+    with TASK_LOCK:
+        tasks = _load_json(TASK_DATA_PATH, {})
+        user_tasks = tasks.get(username, [])
+        
+        # 查找任务
+        task_index = None
+        for i, t in enumerate(user_tasks):
+            if t.get("id") == task_id:
+                task_index = i
+                break
+        
+        if task_index is None:
+            return {
+                "code": 404,
+                "msg": "任务不存在"
+            }
+        
+        # 更新任务
+        user_tasks[task_index] = {
+            **user_tasks[task_index],
+            "title": req.title,
+            "description": req.description,
+            "completed": req.completed,
+            "updatedAt": datetime.now().isoformat()
+        }
+        
+        tasks[username] = user_tasks
+        _save_json(TASK_DATA_PATH, tasks)
+        
+        return {
+            "code": 200,
+            "msg": "任务更新成功",
+            "data": user_tasks[task_index]
+        }
+
+
+@app.delete("/api/v1/tasks/{task_id}")
+def delete_task(username: str, task_id: int) -> Dict[str, Any]:
+    """
+    删除待办任务
+    参数：
+        username: 用户名
+        task_id: 任务ID
+    返回：
+        删除结果
+    """
+    with TASK_LOCK:
+        tasks = _load_json(TASK_DATA_PATH, {})
+        user_tasks = tasks.get(username, [])
+        
+        # 过滤掉要删除的任务
+        new_user_tasks = [t for t in user_tasks if t.get("id") != task_id]
+        
+        if len(new_user_tasks) == len(user_tasks):
+            return {
+                "code": 404,
+                "msg": "任务不存在"
+            }
+        
+        tasks[username] = new_user_tasks
+        _save_json(TASK_DATA_PATH, tasks)
+        
+        return {
+            "code": 200,
+            "msg": "任务删除成功"
+        }
+
+
+USERS_FILE = "users.json"
+DIARIES_FILE = "diaries.json"
+
+# 读取 JSON 文件
+def read_json(file_path):
+    with open(file_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+# 写入 JSON 文件
+def write_json(file_path, data):
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+# 获取所有用户
+@app.get("/users")
+def get_users():
+    return read_json(USERS_FILE)
+
+# 获取用户的日记
+@app.get("/diaries/{user_id}")
+def get_diaries(user_id: str):
+    diaries = read_json(DIARIES_FILE)
+    return diaries.get(user_id, [])
+
+# 添加日记
+@app.post("/diaries/{user_id}")
+def add_diary(user_id: str, diary: dict):
+    diaries = read_json(DIARIES_FILE)
+    if user_id not in diaries:
+        diaries[user_id] = []
+    diaries[user_id].append(diary)
+    write_json(DIARIES_FILE, diaries)
+    return {"msg": "添加成功"}

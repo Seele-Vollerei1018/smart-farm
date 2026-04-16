@@ -1,3 +1,5 @@
+import { login as apiLogin, register as apiRegister } from '@/api/client'
+
 const AUTH_STORAGE_KEY = 'smart-farm-auth-user'
 
 export function getAuthUser() {
@@ -15,21 +17,32 @@ export function isAuthenticated() {
   return !!getAuthUser()
 }
 
-export function loginWithPassword(username, password) {
-  if (username !== 'admin' || password !== 'admin123') {
+export async function loginWithPassword(username, password) {
+  try {
+    const response = await apiLogin(username, password)
+    if (response.ok) {
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(response.user))
+      return response
+    }
+    return response
+  } catch (error) {
     return {
       ok: false,
-      message: '账号或密码错误，请使用测试账号：admin / admin123',
+      message: '登录失败，请检查网络连接',
     }
   }
+}
 
-  const user = {
-    username: 'admin',
-    displayName: 'admin',
-    loginAt: new Date().toISOString(),
+export async function register(username, password, displayName) {
+  try {
+    const response = await apiRegister(username, password, displayName)
+    return response
+  } catch (error) {
+    return {
+      ok: false,
+      message: '注册失败，请检查网络连接',
+    }
   }
-  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user))
-  return { ok: true, user }
 }
 
 export function logout() {
